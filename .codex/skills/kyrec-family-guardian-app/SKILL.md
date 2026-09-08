@@ -6,7 +6,7 @@ description: Build, audit, repair, test and prepare the KYREC Family Guardian ap
 # KYREC Family Guardian — Codex Skill
 
 ## Skill control
-- Version: 1.1
+- Version: 1.2
 - Classification: INTERNAL CONTROLLED
 
 ## Authority
@@ -40,6 +40,17 @@ Family Guardian companions:
 - Companions receive only permitted context.
 - Consequential actions require stronger human approval.
 - Raw private conversations are not durable trusted memory by default.
+
+## HARD CHARACTER-DIRECTION LOCK — PULSE & MONEYBAGS
+This is a permanent Founder rule unless Michael explicitly changes it later.
+
+- **Pulse's approved direction, Family Guardian role, personality, visual identity and purpose must not be changed, replaced, narrowed, repositioned or redefined.**
+- **Moneybags' approved direction, Family Guardian role, personality, visual identity and purpose must not be changed, replaced, narrowed, repositioned or redefined.**
+- New games, children's experiences, education, media, YouTube, animation, stories, scenes, features and commercial opportunities may only **add to** the approved Pulse and Moneybags directions.
+- New popularity or audience evidence can justify extensions, but never becomes authority to rewrite either character's existing lock.
+- If new work conflicts with an existing lock, preserve the existing lock and mark the new proposal **HOLD — conflicts with character lock**.
+
+**Control rule:** Preserve the character. Preserve the role. Add new experiences around it. Never rewrite the lock.
 
 ## Use this skill when
 Use for auditing Family Guardian source, fixing bugs, changing screens/navigation, companion features, Family Points, Moneybags Bonus, journeys/maps/routines/plans/safe zones, permissions and family-role access, KYREC Core/API integration, Android/iOS packaging, release QA, Git handovers and exact resume points.
