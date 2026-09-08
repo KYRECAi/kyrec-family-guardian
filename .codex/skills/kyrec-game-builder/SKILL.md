@@ -6,7 +6,7 @@ description: Design, build, test and hand over KYREC games in Codex while preser
 # KYREC Game Builder — Codex Skill
 
 ## Skill control
-- Version: 1.1
+- Version: 1.2
 - Classification: INTERNAL CONTROLLED
 
 ## Authority
@@ -62,6 +62,18 @@ Family Guardian companions:
 Biko is separate and belongs to **KYREC Business by Biko**.
 
 Do not invent new Family Guardian companions.
+
+## HARD CHARACTER-DIRECTION LOCK — PULSE & MONEYBAGS
+This is a permanent Founder rule unless Michael explicitly changes it later.
+
+- **Do not change, replace, narrow, reposition or redefine Pulse's approved direction, role, personality, visual identity or Family Guardian purpose.**
+- **Do not change, replace, narrow, reposition or redefine Moneybags' approved direction, role, personality, visual identity or Family Guardian purpose.**
+- New games, children's experiences, education, media, YouTube, animation, stories, scenes, mechanics and commercial opportunities may **add to** Pulse and Moneybags only.
+- An extension must sit around the existing lock; it must never become a reason to rewrite the lock.
+- Popularity with children may justify additional experiences, but it is **not authority to reposition either character**.
+- If a proposed feature conflicts with the existing Pulse or Moneybags direction, preserve the existing direction and mark the proposal **HOLD — conflicts with character lock**.
+
+**Control rule:** Preserve the character. Preserve the role. Add new experiences around it. Never rewrite the lock.
 
 ## Character integrity
 When approved reference art is supplied, preserve silhouette, face/eyes, proportions, colour placement, identifying armour/body forms, accessories, defining symbols and personality/role boundaries.
