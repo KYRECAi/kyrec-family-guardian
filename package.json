@@ -4,6 +4,7 @@
   "private": true,
   "description": "KYREC — NOVA · STAN AI — Family Guardian app",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "add:android": "cap add android",
     "sync": "cap sync",
     "open:android": "cap open android",
