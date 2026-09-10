@@ -6,11 +6,9 @@
 <meta name="theme-color" content="#7C5CFC" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-<meta name="apple-mobile-web-app-title" content="NOVA" />
-<title>NOVA · Family Guardian</title>
+<meta name="apple-mobile-web-app-title" content="Family Guardian" />
+<title>KYREC Family Guardian</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap');
-
 :root{
   --purple:#7C5CFC; --purple-d:#5B3FD6; --indigo:#3B2E7E; --ink:#2A2350; --muted:#8A86A8;
   --blue:#3B82F6; --green:#22C55E; --orange:#F97316; --pink:#EC4899; --gold:#F5A623;
@@ -19,7 +17,7 @@
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0;}
 html,body{height:100%;}
 body{
-  font-family:'Poppins',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:var(--ink);
   min-height:100vh;display:flex;align-items:center;justify-content:center;padding:0;
   background:
     radial-gradient(700px 500px at 12% 0%, rgba(124,92,252,.28), transparent 60%),
@@ -171,6 +169,9 @@ body{
 .sw.off{background:#d7d5e8;}
 .btn{width:100%;border:0;border-radius:18px;padding:15px;font-family:inherit;font-size:14px;font-weight:700;color:#fff;cursor:pointer;background:linear-gradient(90deg,#7C5CFC,#5B3FD6);box-shadow:0 14px 30px -14px rgba(91,63,214,.8);}
 .foot{text-align:center;font-size:11px;font-weight:600;color:var(--muted);padding:8px;}
+.demo-banner{margin:4px 16px 0;padding:7px 12px;border-radius:12px;background:#fff7df;border:1px solid rgba(245,166,35,.32);color:#795516;font-size:10px;font-weight:700;text-align:center;}
+.save-status{min-height:20px;margin-top:8px;text-align:center;font-size:11px;font-weight:700;color:var(--green);}
+.sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important;}
 
 .nav{flex:none;display:flex;justify-content:space-around;padding:9px 8px calc(12px + env(safe-area-inset-bottom));background:rgba(255,255,255,.7);border-top:1px solid var(--line);backdrop-filter:blur(12px);}
 .tab{background:none;border:0;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--muted);padding:5px 8px;border-radius:14px;}
@@ -182,9 +183,11 @@ body{
 </head>
 <body>
 <div class="phone">
-  <div class="stat-bar"><span>9:41</span><span style="font-size:11px;letter-spacing:1px;color:var(--muted)">NOVA · STAN AI</span><span>5G ▮▮▮ ▮</span></div>
+  <div class="stat-bar"><span>9:41</span><span style="font-size:11px;letter-spacing:1px;color:var(--muted)">KYREC · FAMILY GUARDIAN</span><span>5G ▮▮▮ ▮</span></div>
+  <div class="demo-banner" role="note">CONCEPT DEMO · Sample family data, not live monitoring</div>
   <div class="body" id="body"></div>
-  <div class="nav" id="nav"></div>
+  <nav class="nav" id="nav" aria-label="Primary navigation"></nav>
+  <div id="announcer" class="sr-only" aria-live="polite"></div>
 </div>
 
 <script>
@@ -194,8 +197,11 @@ var state = {
   gameScore: 7850,
   combo: 0,
   mood: null,
-  toggles: { loc:true, drive:true, alerts:true, points:true }
+  toggles: { loc:true, drive:true, alerts:true, points:true },
+  saveStatus: ""
 };
+
+var SETTINGS_KEY = "kyrec.familyGuardian.demoSettings.v1";
 
 var FAMILY = [
   { n:"Annie", i:"A", c:"#8B5CF6", st:"At school", stc:"#8B5CF6" },
@@ -342,11 +348,11 @@ function pStats(){
 function pChars(){
   var others = [
     {n:"Nova",role:"Health · Routines · Recipes · Care",c:"#EC4899",g:"✨",lvl:"Level 9",xp:"2,100 / 3,000 XP",p:70,note:"Nova suggests a bedtime routine · 7:45 AM"},
-    {n:"Moneybags",role:"Budget · Savings · Goals · Rewards",c:"#F5A623",g:"💰",lvl:"Level 8",xp:"1,600 / 2,500 XP",p:64,note:"Moneybags budget challenge ready!"}
+    {n:"Moneybags",role:"Budget · Savings · Goals · Rewards",c:"#F5A623",g:"💰",lvl:"Level 8",xp:"1,600 / 2,500 XP",p:64,note:"Moneybags challenge ready · adult approval is required"}
   ];
   var locked = [
-    {n:"Scout",g:"✈️",desc:"Navigation, travel planning and smart alerts.",at:"Unlocks at Family Level 14"},
-    {n:"Pulse",g:"∿",desc:"Emotional wellness, mindfulness and family balance.",at:"Unlocks at Family Level 18"}
+    {n:"Scout",g:"✈️",desc:"Journeys, travel, arrivals and mobility support.",at:"Unlocks at Family Level 14"},
+    {n:"Pulse",g:"∿",desc:"Family Flow, routines, planning and coordination.",at:"Unlocks at Family Level 18"}
   ];
   var act = [["🎙️","Talk"],["🔊","Voice"],["✦","Family Advice"],["🛡️","Safety"]].map(function(a){
     return '<div class="a"><div class="i">'+a[0]+'</div><div class="n">'+a[1]+'</div></div>';
@@ -446,7 +452,8 @@ function pMore(){
     + '<div class="gap"></div><div class="card tint" style="text-align:center"><div style="font-size:22px">🔒</div>'
       + '<div style="font-weight:800;font-size:14px;margin-top:6px">No selling private family stories.</div>'
       + '<div style="font-size:12px;color:var(--muted);margin-top:4px">Trust comes before growth. Built in Perth for families.</div></div>'
-    + '<div class="gap"></div><button class="btn">Save my family\'s choices</button>'
+    + '<div class="gap"></div><button class="btn" data-action="save" type="button">Save my family\'s choices</button>'
+    + '<div class="save-status" role="status">'+state.saveStatus+'</div>'
     + '<div class="gap"></div><div class="foot">Not an emergency, medical or law-enforcement service.</div></div>';
 }
 
@@ -455,8 +462,33 @@ var PAGES = [pHome, pMap, pStats, pChars, pGames, pMore];
 /* ---------------- render ---------------- */
 function renderNav(){
   document.getElementById("nav").innerHTML = TABS.map(function(t,i){
-    return '<button class="tab'+(state.tab===i?' active':'')+'" data-nav="'+i+'"><span class="ic">'+t.ic+'</span><span class="tl">'+t.tl+'</span></button>';
+    return '<button class="tab'+(state.tab===i?' active':'')+'" data-nav="'+i+'" type="button" aria-label="'+t.tl+'"'+(state.tab===i?' aria-current="page"':'')+'><span class="ic" aria-hidden="true">'+t.ic+'</span><span class="tl">'+t.tl+'</span></button>';
   }).join("");
+}
+function announce(message){
+  var el = document.getElementById("announcer");
+  if(el) el.textContent = message;
+}
+function loadSettings(){
+  try {
+    var saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    if(!saved || !saved.toggles) return;
+    Object.keys(state.toggles).forEach(function(key){
+      if(typeof saved.toggles[key] === "boolean") state.toggles[key] = saved.toggles[key];
+    });
+  } catch (_) {
+    /* Invalid or unavailable local storage falls back to safe demo defaults. */
+  }
+}
+function saveSettings(){
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({toggles:state.toggles}));
+    state.saveStatus = "Choices saved on this device.";
+  } catch (_) {
+    state.saveStatus = "Could not save on this device.";
+  }
+  render();
+  announce(state.saveStatus);
 }
 function render(){
   var body = document.getElementById("body");
@@ -468,7 +500,7 @@ function render(){
 /* ---------------- events (delegation) ---------------- */
 document.addEventListener("click", function(e){
   var nav = e.target.closest("[data-nav]");
-  if(nav){ state.tab = parseInt(nav.getAttribute("data-nav"),10); render(); return; }
+  if(nav){ state.tab = parseInt(nav.getAttribute("data-nav"),10); state.saveStatus=""; render(); announce(TABS[state.tab].tl+" opened"); return; }
 
   var act = e.target.closest("[data-action]");
   if(!act) return;
@@ -484,7 +516,9 @@ document.addEventListener("click", function(e){
   } else if(a==="mood"){
     state.mood = act.getAttribute("data-mood"); render();
   } else if(a==="toggle"){
-    var k = act.getAttribute("data-key"); state.toggles[k] = !state.toggles[k]; render();
+    var k = act.getAttribute("data-key"); state.toggles[k] = !state.toggles[k]; state.saveStatus=""; render();
+  } else if(a==="save"){
+    saveSettings();
   }
 });
 document.addEventListener("keydown", function(e){
@@ -494,6 +528,7 @@ document.addEventListener("keydown", function(e){
   }
 });
 
+loadSettings();
 render();
 </script>
 </body>
