@@ -153,6 +153,20 @@ body{
 .game .gmeta .lab{font-size:10px;color:var(--muted);font-weight:600;}
 .game .play{font-size:11px;font-weight:700;color:var(--purple);background:rgba(124,92,252,.12);padding:6px 12px;border-radius:12px;}
 
+.moneybags-stage{position:relative;min-height:300px;overflow:hidden;border-radius:26px;padding:16px;color:#fff;background:radial-gradient(circle at 50% 18%,rgba(255,226,125,.42),transparent 30%),linear-gradient(155deg,#321c72,#6f3fd3 58%,#b85e22);box-shadow:0 24px 46px -24px rgba(54,28,114,.8);}
+.moneybags-top{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;position:relative;z-index:3;}
+.moneybags-stat{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;opacity:.82;}.moneybags-stat b{display:block;margin-top:2px;font-size:20px;color:#fff;letter-spacing:0;}.moneybags-stat.right{text-align:right;}
+.moneybags-avatar{width:90px;height:90px;margin:18px auto 4px;border-radius:50%;display:grid;place-items:center;font-size:48px;background:radial-gradient(circle at 40% 30%,#fff5bd,#f5a623 58%,#9a4c13);box-shadow:0 0 0 7px rgba(255,255,255,.12),0 16px 30px rgba(30,10,70,.38);position:relative;z-index:2;}
+.moneybags-avatar.playing{animation:moneybags-bounce .9s ease-in-out infinite alternate;}
+.moneybags-arena{height:108px;position:relative;margin:4px 0 10px;border-radius:20px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.16);overflow:hidden;}
+.coin{position:absolute;width:56px;height:56px;border:0;border-radius:50%;display:grid;place-items:center;font-size:31px;cursor:pointer;background:linear-gradient(145deg,#fff19b,#f5a623 58%,#c26a0a);box-shadow:inset 0 0 0 4px rgba(255,255,255,.3),0 8px 16px rgba(30,10,70,.35);animation:coin-in .28s ease-out both;touch-action:manipulation;}
+.coin:focus-visible,.game-control:focus-visible{outline:3px solid #fff;outline-offset:3px;}
+.game-message{text-align:center;height:100%;padding:12px;font-size:12px;font-weight:700;line-height:1.4;display:grid;place-items:center;}
+.bonus-meter{height:13px;border-radius:999px;background:rgba(255,255,255,.2);overflow:hidden;margin:9px 0 5px;}.bonus-meter i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#ffe472,#fff7c1);transition:width .2s ease;}
+.game-controls{display:flex;gap:8px;margin-top:12px;}.game-control{min-height:44px;flex:1;border:1px solid rgba(255,255,255,.24);border-radius:14px;padding:10px 12px;font:700 12px inherit;cursor:pointer;color:#fff;background:rgba(255,255,255,.16);}.game-control.primary{color:#55310b;background:#ffe472;border-color:#ffe472;}
+.authority-wall{margin-top:12px;border-radius:18px;padding:12px;background:#fff9e8;border:1px solid rgba(245,166,35,.35);font-size:11px;line-height:1.45;color:#634514;}.authority-wall b{display:block;margin-bottom:3px;color:#3f2a0a;}.future-game{opacity:.78;cursor:default;}
+@keyframes moneybags-bounce{to{transform:translateY(-5px) rotate(2deg);}}@keyframes coin-in{from{opacity:0;transform:scale(.5) rotate(-30deg);}to{opacity:1;transform:scale(1) rotate(0);}}
+
 .mood{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .moodbtn{border-radius:18px;padding:14px 12px;border:1px solid var(--line);background:var(--glass);text-align:left;cursor:pointer;transition:.2s;font-family:inherit;color:inherit;}
 .moodbtn.sel{border-color:var(--purple);box-shadow:0 0 0 3px rgba(124,92,252,.18);}
@@ -178,7 +192,7 @@ body{
 .tab .ic{font-size:18px;line-height:1;}
 .tab .tl{font-size:9px;font-weight:600;}
 .tab.active{color:var(--purple);background:rgba(124,92,252,.12);}
-@media (prefers-reduced-motion:reduce){.disc,.reveal{animation:none!important;}}
+@media (prefers-reduced-motion:reduce){.disc,.reveal,.moneybags-avatar,.coin{animation:none!important;}}
 </style>
 </head>
 <body>
@@ -190,12 +204,13 @@ body{
   <div id="announcer" class="sr-only" aria-live="polite"></div>
 </div>
 
+<script src="moneybags-game.js"></script>
 <script>
 /* ---------------- state ---------------- */
 var state = {
   tab: 0,
-  gameScore: 7850,
-  combo: 0,
+  moneybags: MoneybagsGame.createState(),
+  coinPosition: { left: 42, top: 25 },
   mood: null,
   toggles: { loc:true, drive:true, alerts:true, points:true },
   saveStatus: ""
@@ -393,34 +408,65 @@ function pChars(){
     + '<div class="gap"></div><div class="foot">Early-stage concepts · companions don\'t replace parents or professionals</div></div>';
 }
 
+var DEMO_BONUS_AUTHORITY = { kind:"simulated", status:"approved", adultApproved:true, household:"demo-family" };
+var gameTimer = null;
 var GAMES = [
-  {s:"Christmas",t:"Christmas Train",g:"🎄",grad:"linear-gradient(120deg,#1f6b4f,#8b2842)",team:"7,850",extra:"Combo x12 · catch 50"},
-  {s:"Valentine's",t:"Valentine's Love Dash",g:"💕",grad:"linear-gradient(120deg,#8a2e63,#d16a9a)",team:"12,850",extra:"Love meter 78%"},
-  {s:"Easter",t:"Easter Hunt",g:"🥚",grad:"linear-gradient(120deg,#2f7d5b,#8a7a2a)",team:"2,450",extra:"18 / 30 eggs · streak x3"},
-  {s:"Weekly",t:"Moneybags Bonus",g:"💰",grad:"linear-gradient(120deg,#5b3fd6,#f5a623)",team:"1,250",extra:"Budget streak 7d · x2.5"}
+  {s:"Future seasonal game",t:"Christmas Train",g:"🎄",grad:"linear-gradient(120deg,#1f6b4f,#8b2842)"},
+  {s:"Future seasonal game",t:"Valentine's Love Dash",g:"💕",grad:"linear-gradient(120deg,#8a2e63,#d16a9a)"},
+  {s:"Future seasonal game",t:"Easter Hunt",g:"🥚",grad:"linear-gradient(120deg,#2f7d5b,#8a7a2a)"}
 ];
 function pGames(){
+  var game = state.moneybags;
+  var progress = Math.min(100, Math.round(game.score/game.targetScore*100));
+  var active = game.phase === "playing";
+  var complete = game.phase === "won" || game.phase === "finished";
+  var message = "Adult-approved demo unlock ready. Start a 60-second round.";
+  if(active) message = "Tap each moving coin for +50 game score.";
+  if(game.phase === "paused") message = "Round paused. Your game score is safe.";
+  if(game.phase === "won") message = "Bonus target reached — a brilliant family win!";
+  if(game.phase === "finished") message = "Round complete. Great effort — nothing is lost.";
+  if(game.phase === "locked") message = "An approved adult/Core unlock is required.";
   var cards = GAMES.map(function(g){
-    return '<div class="game"><div class="banner" style="background:'+g.grad+'"><span class="season">'+g.s+'</span>'
+    return '<div class="game future-game"><div class="banner" style="background:'+g.grad+'"><span class="season">'+g.s+'</span>'
       + '<div style="display:flex;justify-content:space-between;align-items:flex-end"><div class="gt">'+g.t+'</div><div style="font-size:34px">'+g.g+'</div></div></div>'
-      + '<div class="gmeta"><div><div class="team">'+g.team+'</div><div class="lab">Team score · '+g.extra+'</div></div><div class="play">Play ›</div></div></div>';
+      + '<div class="gmeta"><div><div class="team">Coming later</div><div class="lab">Moneybags Bonus comes first</div></div><div class="play">Preview</div></div></div>';
   }).join("");
-  return '<div class="reveal">'+header("Family Games","Play together, earn together","🎮")
-    + '<div class="card" style="background:linear-gradient(160deg,#e8ecff,#f2ecff)">'
-      + '<div style="display:flex;justify-content:space-between;align-items:center">'
-      + '<div><div class="eyebrow">Now playing</div><div style="font-weight:800;font-size:16px">🎄 Christmas Train</div></div>'
-      + '<div style="text-align:right"><div style="font-size:9px;color:var(--muted);font-weight:600">TEAM SCORE</div>'
-      + '<div id="gscore" style="font-size:22px;font-weight:800;color:var(--indigo)">'+state.gameScore.toLocaleString()+'</div></div></div>'
-      + '<div style="position:relative;height:120px;margin:12px 0;border-radius:16px;background:linear-gradient(160deg,#cfd8ff,#e6d8ff);display:grid;place-items:center;overflow:hidden">'
-      + '<button data-action="catch" style="border:0;background:none;cursor:pointer;font-size:44px" aria-label="Catch">🍬</button>'
-      + '<div id="gpop" style="position:absolute;top:14px;color:var(--purple);font-weight:800"></div>'
-      + '<div style="position:absolute;bottom:8px;font-size:10px;color:var(--indigo);font-weight:600">Tap to catch · one shared team score</div></div>'
-      + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600">'
-      + '<span>🔥 Combo <b id="gcombo" style="color:var(--gold)">x'+state.combo+'</b></span><span style="color:var(--muted)">Best 12,430</span></div></div>'
-    + '<div class="gap"></div><div class="eyebrow" style="margin-bottom:10px">Seasonal pop-up games</div>'
+  return '<div class="reveal">'+header("Family Games","Play together, celebrate together","🎮")
+    + '<div class="moneybags-stage" aria-label="Moneybags Bonus playable prototype">'
+      + '<div class="moneybags-top"><div class="moneybags-stat">Game score<b>'+game.score.toLocaleString()+'</b></div>'
+      + '<div class="chip" style="color:#5b3a08;background:#fff3bb">Prototype</div>'
+      + '<div class="moneybags-stat right">Time<b>'+game.secondsLeft+'s</b></div></div>'
+      + '<div class="moneybags-avatar'+(active?' playing':'')+'" aria-label="Moneybags placeholder animation">💰</div>'
+      + '<div style="text-align:center;font-size:19px;font-weight:800">Moneybags Bonus</div>'
+      + '<div class="bonus-meter" role="progressbar" aria-label="Moneybags Bonus target" aria-valuemin="0" aria-valuemax="'+game.targetScore+'" aria-valuenow="'+game.score+'"><i style="width:'+progress+'%"></i></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:10px;font-weight:700"><span>'+progress+'% target</span><span>Combo x'+game.combo+'</span></div>'
+      + '<div class="moneybags-arena">'+(active?'<button class="coin" data-action="coin" type="button" aria-label="Collect coin for 50 game score" style="left:'+state.coinPosition.left+'%;top:'+state.coinPosition.top+'%">🪙</button>':'<div class="game-message">'+message+'</div>')+'</div>'
+      + '<div class="game-controls">'
+      + (game.phase === "ready" || game.phase === "locked" ? '<button class="game-control primary" data-action="game-start" type="button">Start round</button>' : '')
+      + (active ? '<button class="game-control" data-action="game-pause" type="button">Pause</button>' : '')
+      + (game.phase === "paused" ? '<button class="game-control primary" data-action="game-resume" type="button">Resume</button>' : '')
+      + (complete ? '<button class="game-control primary" data-action="game-restart" type="button">Play again</button>' : '')
+      + '</div></div>'
+    + '<div class="authority-wall"><b>Game score ≠ Family Points</b>Each coin adds +50 to this round only. This prototype awards 0 Family Points. Any real Family Points or family reward requires separate Core authority and adult approval.</div>'
+    + '<div class="gap"></div><div class="eyebrow" style="margin-bottom:10px">Future seasonal games</div>'
     + '<div style="display:flex;flex-direction:column;gap:13px">'+cards+'</div>'
-    + '<div class="gap"></div><div class="card tint" style="text-align:center;font-size:12px;font-weight:600">Opt-in play · everyone contributes to one score · <b style="color:var(--purple)">no pay-to-win</b></div>'
-    + '<div class="gap"></div><div class="foot">✦ Positive family habits become short cooperative moments</div></div>';
+    + '<div class="gap"></div><div class="card tint" style="text-align:center;font-size:12px;font-weight:600">60-second opt-in play · no punishment · <b style="color:var(--purple)">no pay-to-win</b></div>'
+    + '<div class="gap"></div><div class="foot">Approved definition v1.0 · placeholder character art · local prototype only</div></div>';
+}
+
+function stopGameTimer(){
+  if(gameTimer){ clearInterval(gameTimer); gameTimer = null; }
+}
+function startGameTimer(){
+  stopGameTimer();
+  gameTimer = setInterval(function(){
+    MoneybagsGame.tick(state.moneybags);
+    if(state.moneybags.phase !== "playing") stopGameTimer();
+    if(state.tab === 4) render();
+  },1000);
+}
+function moveCoin(){
+  state.coinPosition = { left:Math.floor(5+Math.random()*78), top:Math.floor(8+Math.random()*42) };
 }
 
 function pMore(){
@@ -500,19 +546,32 @@ function render(){
 /* ---------------- events (delegation) ---------------- */
 document.addEventListener("click", function(e){
   var nav = e.target.closest("[data-nav]");
-  if(nav){ state.tab = parseInt(nav.getAttribute("data-nav"),10); state.saveStatus=""; render(); announce(TABS[state.tab].tl+" opened"); return; }
+  if(nav){
+    var nextTab = parseInt(nav.getAttribute("data-nav"),10);
+    if(state.tab === 4 && nextTab !== 4 && state.moneybags.phase === "playing"){
+      MoneybagsGame.pause(state.moneybags); stopGameTimer();
+    }
+    state.tab = nextTab; state.saveStatus=""; render(); announce(TABS[state.tab].tl+" opened"); return;
+  }
 
   var act = e.target.closest("[data-action]");
   if(!act) return;
   var a = act.getAttribute("data-action");
 
-  if(a==="catch"){
-    var gain = 50 * (Math.floor(state.combo/3)+1);
-    state.gameScore += gain; state.combo += 1;
-    var sc = document.getElementById("gscore"); if(sc) sc.textContent = state.gameScore.toLocaleString();
-    var cb = document.getElementById("gcombo"); if(cb) cb.textContent = "x"+state.combo;
-    var pop = document.getElementById("gpop");
-    if(pop){ pop.textContent = "+"+gain; pop.style.animation="none"; void pop.offsetWidth; pop.style.animation="floatpop .7s ease forwards"; }
+  if(a==="game-start"){
+    MoneybagsGame.reset(state.moneybags);
+    MoneybagsGame.start(state.moneybags, DEMO_BONUS_AUTHORITY);
+    moveCoin(); startGameTimer(); render(); announce("Moneybags Bonus started. Each coin is 50 game score only.");
+  } else if(a==="coin"){
+    MoneybagsGame.collectCoin(state.moneybags); moveCoin();
+    if(state.moneybags.phase !== "playing") stopGameTimer();
+    render(); announce("50 game score. Combo "+state.moneybags.combo+".");
+  } else if(a==="game-pause"){
+    MoneybagsGame.pause(state.moneybags); stopGameTimer(); render(); announce("Moneybags Bonus paused.");
+  } else if(a==="game-resume"){
+    MoneybagsGame.resume(state.moneybags); startGameTimer(); render(); announce("Moneybags Bonus resumed.");
+  } else if(a==="game-restart"){
+    MoneybagsGame.reset(state.moneybags); render(); announce("Moneybags Bonus ready for another round.");
   } else if(a==="mood"){
     state.mood = act.getAttribute("data-mood"); render();
   } else if(a==="toggle"){
@@ -525,6 +584,12 @@ document.addEventListener("keydown", function(e){
   if((e.key===" "||e.key==="Enter") && document.activeElement){
     var act = document.activeElement.closest && document.activeElement.closest('[data-action="toggle"]');
     if(act){ e.preventDefault(); var k=act.getAttribute("data-key"); state.toggles[k]=!state.toggles[k]; render(); }
+  }
+});
+document.addEventListener("visibilitychange", function(){
+  if(document.hidden && state.moneybags.phase === "playing"){
+    MoneybagsGame.pause(state.moneybags); stopGameTimer();
+    if(state.tab === 4) render();
   }
 });
 
