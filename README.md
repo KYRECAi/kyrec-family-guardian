@@ -12,6 +12,15 @@ backend or KYREC Core connection yet.
 Privacy choices are saved only in local storage on the current device. Mood
 check-ins intentionally remain in memory and disappear when the app closes.
 
+The Games screen includes the JAX-approved Moneybags Bonus v1.0 playable
+prototype. Coin taps add `+50` game score only. The local prototype awards no
+Family Points or real-family rewards; those remain behind separate adult and
+Core authority. Seasonal games are future previews until the Moneybags
+foundation is accepted.
+
+The accepted product definition and authority boundary are recorded in
+[`docs/product/moneybags-bonus-game-definition-v1.0.md`](docs/product/moneybags-bonus-game-definition-v1.0.md).
+
 ## Run locally
 
 ```bash
