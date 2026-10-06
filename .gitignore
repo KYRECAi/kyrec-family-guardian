@@ -1,4 +1,16 @@
 node_modules/
-android/
+dist/
+.output/
+.vercel/
+.tanstack/
+.grok/
+artifacts/
+attachments/
+screenshots/
+.env
+.env.*
+!.env.example
 .DS_Store
 *.log
+android/
+.project_id

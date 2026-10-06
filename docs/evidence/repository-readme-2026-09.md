@@ -1,24 +1,12 @@
 # KYREC Family Guardian
 
-The app in this repository is the current Family Guardian build: the home page, companions, shop list, map, and settings. It replaces the September Capacitor shell that lived in `www/`.
+This private repository contains the supplied Family Guardian Capacitor prototype. **KYREC Family Guardian** is the current product name. `NOVA`, `NOVA · STAN AI`, and the npm package name `nova-family-guardian` are historical names retained from the supplied source; they are not a product rename or a statement that Nova is the whole product.
 
-That older shell, its readme, and the Capacitor config are kept under `docs/evidence/`. The docs and contracts in `docs/` are unchanged.
+## Current status
 
-Install and run:
+The checked-in app is a visual, local prototype. It provides six rendered areas and a few in-memory interactions, but it is not connected to a backend, KYREC Core, authentication, device location, notifications, durable storage, or production permission controls. Text and controls that imply safety, privacy, maps, points, companion intelligence, or saved family preferences are demonstration UI unless the [source inventory](docs/audits/source-inventory-2026-09-16.md) explicitly records verified behavior.
 
-```bash
-npm install
-npm run dev
-```
-
-The Google map key is not in this repository. It is entered in the app under Settings, on the phone that is using the map.
-
-## Previous repository note
-
-The text below is the 18 September repository note. It described the old prototype. It is not a description of the app that is in `src/` now.
-
----
-
+**Release status: HOLD.** Do not represent this prototype as an operational family-safety product.
 
 ## Preserved source and identity
 
