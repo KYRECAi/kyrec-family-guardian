@@ -1,8 +1,0 @@
-{
-  "appId": "au.kyrec.familyguardian",
-  "appName": "NOVA",
-  "webDir": "www",
-  "server": {
-    "androidScheme": "https"
-  }
-}
