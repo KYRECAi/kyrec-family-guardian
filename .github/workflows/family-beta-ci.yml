@@ -1,0 +1,86 @@
+name: Family beta gate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: family-beta-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Family beta gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: guardian_test
+          POSTGRES_USER: guardian_test
+          POSTGRES_PASSWORD: synthetic-ci-only-password
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U guardian_test -d guardian_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - name: Run explicit database migrations twice
+        env:
+          DATABASE_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_test
+        run: |
+          npm run db:migrate
+          npm run db:migrate
+      - name: Type and behavioral gates, including real PostgreSQL authentication
+        env:
+          GUARDIAN_TEST_POSTGRES_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_test
+        run: |
+          npm run typecheck
+          npm run lint
+          npm test
+          npm audit --omit=dev --audit-level=moderate
+      - name: Install isolated test browser
+        run: npx playwright install --with-deps chromium
+      - name: Development phone and desktop account gate
+        run: npm run test:browser
+      - name: Build retained Vercel output
+        run: npm run build
+      - name: Build standalone AWS-compatible server output
+        env:
+          NITRO_PRESET: node-server
+        run: npm run build
+      - name: Production phone and desktop account gate
+        env:
+          GUARDIAN_SMOKE_MODE: production
+        run: npm run test:browser
+      - name: Build non-root container from this exact source
+        run: |
+          docker build --build-arg GUARDIAN_SOURCE_COMMIT=${{ github.event.pull_request.head.sha || github.sha }} -t guardian-beta:test .
+          test "$(docker inspect --format '{{.Config.User}}' guardian-beta:test)" = node
+          if docker run --rm guardian-beta:test > /tmp/guardian-startup.log 2>&1; then
+            echo "Unconfigured production container started."
+            exit 1
+          fi
+          grep -Fq 'Guardian startup blocked' /tmp/guardian-startup.log
+      - name: Keep browser evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: family-beta-browser-evidence
+          path: artifacts/family-beta
+          if-no-files-found: ignore
+          retention-days: 7

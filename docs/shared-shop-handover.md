@@ -1,5 +1,13 @@
 # KYREC Core handover — Shared Shop
 
+Implementation update, 7 October 2026: see
+`docs/guardian-beta-integration-2026-10-07.md` and the paired Core/Guardian PRs.
+The original screen rules below are preserved as the supplied handover. The
+implementation uses confirmed account IDs and recipient-bound invitations,
+not hard-coded family identities. Shopping point entries retain opaque IDs
+and deltas rather than deleted item names. Code is prepared; live-family
+deployment is still HOLD pending the documented gates.
+
 For the Core designer. Guardian screen is the source of truth. Core does not exist for this feature yet. The phone copy in `kyrec-family-guardian` (`src/lib/store.ts`, `src/components/grocery-list.tsx`) saves on one device only. That is the bug this handover replaces.
 
 Repo with the screen: `KYRECAi/kyrec-family-guardian`.

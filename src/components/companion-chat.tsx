@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize2, X } from "lucide-react";
-import { askCompanion } from "@/lib/companion-ai";
+import { askCompanion, setCompanionConsent } from "@/lib/companion-ai";
 import { COMPANION_LORE, type CompanionId } from "@/lib/companions";
-import { useGuardian } from "@/lib/store";
+import { useHousehold } from "@/lib/household-context";
+import { useCurrentUserState } from "@/lib/auth/use-current-user";
 
 const STARTERS: Record<CompanionId, string[]> = {
   stan: ["What does pausing location actually hide?", "Which alerts are worth leaving on?"],
@@ -13,44 +14,6 @@ const STARTERS: Record<CompanionId, string[]> = {
 };
 
 const EMPTY: { role: "user" | "them"; text: string }[] = [];
-
-function perthToday() {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Australia/Perth",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date());
-}
-
-function replyLocal(id: CompanionId, text: string) {
-  const q = text.toLowerCase();
-  if (id === "nova") {
-    return "I’m here if you want warmth, not a score. Say it in one line, or don’t. Nothing here is shared unless you keep it.";
-  }
-  if (id === "scout") {
-    return "I can summarise a trip you chose to share. I don’t score a person, and I don’t watch the drive in secret. If someone is in danger, call 000.";
-  }
-  if (id === "moneybags") {
-    return "One honest number beats a dashboard. Tell me the weekly figure when you’re ready — I won’t nag, and I won’t touch family chat.";
-  }
-  if (id === "pulse") {
-    const clock = q.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
-    if (clock) {
-      let hour = Number(clock[1]);
-      const min = clock[2] ?? "00";
-      const ap = clock[3];
-      if (ap === "pm" && hour < 12) hour += 12;
-      if (ap === "am" && hour === 12) hour = 0;
-      if (!ap && hour < 7) hour += 12;
-      const start = `${String(hour).padStart(2, "0")}:${min}`;
-      const title = text.replace(clock[0], "").replace(/\b(at|for everyone|tomorrow|today)\b/gi, "").trim() || "Family plan";
-      return { text: `On the plan. ${title} at ${start}. No extra screens.`, event: { title, start } };
-    }
-    return "Tell me the thing and the time in one line. “Dinner at 6:30” lands on the plan. I won’t hand you a calendar first.";
-  }
-  return "Ask in one line. I’ll stay in my lane.";
-}
 
 export function CompanionChat({
   id,
@@ -64,20 +27,18 @@ export function CompanionChat({
   onClose?: () => void;
 }) {
   const c = COMPANION_LORE[id];
-  const stored = useGuardian((s) => s.chats[id]);
-  const stanMessages = useGuardian((s) => s.stanMessages);
-  const addChat = useGuardian((s) => s.addChat);
-  const addStan = useGuardian((s) => s.addStan);
-  const addEvent = useGuardian((s) => s.addEvent);
+  const { snapshot } = useHousehold();
+  const { user } = useCurrentUserState();
+  const [messages, setMessages] = useState(EMPTY);
+  const [consent, setConsent] = useState(false);
+  useEffect(() => {
+    setMessages([]);
+    setConsent(false);
+  }, [id, user?.id]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
-
-  const messages =
-    id === "stan"
-      ? stanMessages.map((m) => ({ role: m.role === "user" ? ("user" as const) : ("them" as const), text: m.text }))
-      : (stored ?? EMPTY);
 
   useEffect(() => {
     const box = scroller.current;
@@ -99,25 +60,26 @@ export function CompanionChat({
     setBusy(true);
     setError(null);
     setText("");
-    if (id === "stan") addStan({ role: "user", text: q });
-    else addChat(id, { role: "user", text: q });
-
-    if (id === "pulse") {
-      const local = replyLocal(id, q);
-      if (typeof local !== "string") addEvent(local.event.title, perthToday(), local.event.start, "Everyone");
+    if (!snapshot || !consent) {
+      setError("Choose whether to send your messages to OpenAI before chatting.");
+      setBusy(false);
+      return;
     }
-
-    const history = messages.map((m) => ({ role: m.role, text: m.text }));
-    const res = await askCompanion({ data: { id, prompt: q, history } });
-    if (res.ok) {
-      if (id === "stan") addStan({ role: "stan", text: res.text });
-      else addChat(id, { role: "them", text: res.text });
-    } else {
-      const local = replyLocal(id, q);
-      const line = typeof local === "string" ? local : local.text;
-      if (id === "stan") addStan({ role: "stan", text: line });
-      else addChat(id, { role: "them", text: line });
-      if (!res.error.includes("unavailable")) setError(res.error);
+    setMessages((current) => [...current, { role: "user", text: q }]);
+    try {
+      const res = await askCompanion({
+        data: {
+          id,
+          household: snapshot.household_id,
+          request_id: crypto.randomUUID(),
+          prompt: q,
+          history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
+        },
+      });
+      if (res.ok) setMessages((current) => [...current, { role: "them", text: res.text }]);
+      else setError(res.error);
+    } catch {
+      setError("The companion connection is unavailable. Please try later.");
     }
     setBusy(false);
   }
@@ -144,7 +106,39 @@ export function CompanionChat({
           </button>
         )}
       </div>
-      <div ref={scroller} className={full ? "mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto" : "mt-2 max-h-36 space-y-2 overflow-y-auto"}>
+      <label className="mt-3 flex gap-2 text-xs text-muted">
+        <input
+          type="checkbox"
+          checked={consent}
+          disabled={busy || snapshot?.member_role !== "adult"}
+          onChange={(e) => {
+            const enabled = e.target.checked;
+            if (!snapshot) return;
+            setBusy(true);
+            void setCompanionConsent({ data: { household: snapshot.household_id, enabled } })
+              .then(() => setConsent(enabled))
+              .catch(() => setError("Could not save your companion choice."))
+              .finally(() => setBusy(false));
+          }}
+        />
+        Send my message and up to six recent chat messages to OpenAI so this companion can answer.
+        Chats stay in this tab and are not shared with family members.
+      </label>
+      <p className="mt-2 text-xs text-muted">
+        AI responses can be mistaken. In immediate danger in Australia, call{" "}
+        <a href="tel:000" className="underline">
+          000
+        </a>
+        . Child companion access requires separate release checks.
+      </p>
+      <div
+        ref={scroller}
+        className={
+          full
+            ? "mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto"
+            : "mt-2 max-h-36 space-y-2 overflow-y-auto"
+        }
+      >
         {messages.map((m, i) => (
           <div
             key={`${m.role}-${i}`}
@@ -162,7 +156,12 @@ export function CompanionChat({
       </div>
       <div className="mt-2 flex gap-2 overflow-x-auto">
         {STARTERS[id].map((s) => (
-          <button key={s} type="button" onClick={() => void send(s)} className="shrink-0 rounded-full bg-ink-2 px-3 py-1.5 text-xs">
+          <button
+            key={s}
+            type="button"
+            onClick={() => void send(s)}
+            className="shrink-0 rounded-full bg-ink-2 px-3 py-1.5 text-xs"
+          >
             {s}
           </button>
         ))}
@@ -176,16 +175,24 @@ export function CompanionChat({
       >
         <input
           value={text}
+          maxLength={600}
           onChange={(e) => setText(e.target.value)}
           placeholder={`Message ${c.name}`}
           className="h-11 min-w-0 flex-1 rounded-full bg-ink-2 px-4 text-sm outline-none"
         />
-        <button type="submit" className="h-11 rounded-full bg-blue px-4 text-sm font-medium text-paper">
+        <button
+          type="submit"
+          className="h-11 rounded-full bg-blue px-4 text-sm font-medium text-paper"
+        >
           Send
         </button>
       </form>
       {full ? (
-        <button type="button" onClick={onClose} className="mt-3 h-12 w-full rounded-full bg-ink-2 text-sm font-semibold">
+        <button
+          type="button"
+          onClick={onClose}
+          className="mt-3 h-12 w-full rounded-full bg-ink-2 text-sm font-semibold"
+        >
           Close chat
         </button>
       ) : null}

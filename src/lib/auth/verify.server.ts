@@ -42,7 +42,7 @@ export class UnauthorizedError extends Error {
   }
 }
 
-export type VerifiedUser = { id: string; email: string | null };
+export type VerifiedUser = { id: string; email: string | null; emailVerified: boolean };
 
 /**
  * Resolve the signed-in user from the current request, or `null` when auth isn't
@@ -54,10 +54,10 @@ export type VerifiedUser = { id: string; email: string | null };
  * as a bearer token, which we present as `Authorization: Bearer …` (the `bearer`
  * plugin resolves it). When deployed no token is passed and the cookie is used.
  */
-export async function getSessionUser(
-  bearerToken?: string,
-): Promise<VerifiedUser | null> {
+export async function getSessionUser(bearerToken?: string): Promise<VerifiedUser | null> {
   if (!authConfigured && !gateIdentityEnabled()) return null;
+  const { requireProductionIdentityConfiguration } = await import("../runtime-config.server");
+  requireProductionIdentityConfiguration();
   const request = getRequest();
   if (!request) return null;
   let headers = request.headers;
@@ -65,9 +65,27 @@ export async function getSessionUser(
     headers = new Headers(request.headers);
     headers.set("Authorization", `Bearer ${bearerToken}`);
   }
-  const session = await auth.api.getSession({ headers });
+  const session = await auth.api.getSession({ headers, query: { disableCookieCache: true } });
   if (!session?.user) return null;
-  return { id: session.user.id, email: session.user.email ?? null };
+  return {
+    id: session.user.id,
+    email: session.user.email ?? null,
+    emailVerified: session.user.emailVerified === true,
+  };
+}
+
+/** Shared family data and paid providers always require a verified real account. */
+export async function requireVerifiedUser(bearerToken?: string): Promise<VerifiedUser> {
+  const user = await getSessionUser(bearerToken);
+  if (!user || user.id === DEV_USER_ID) throw new UnauthorizedError();
+  if (!user.emailVerified) {
+    const error = new Error("Confirm your email before opening shared family data.") as Error & {
+      status: number;
+    };
+    error.status = 403;
+    throw error;
+  }
+  return user;
 }
 
 /**

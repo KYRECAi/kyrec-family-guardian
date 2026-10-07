@@ -1,4 +1,4 @@
-export type MemberId = "michael" | "kelly" | "paige" | "chelsea" | "madison";
+export type MemberId = string;
 export type Accent = "blue" | "violet" | "magenta" | "green" | "gold" | "pink" | "orange";
 
 export type Member = {
@@ -354,7 +354,8 @@ export const GAMES = [
     id: "easter",
     season: "Easter",
     title: "Easter Hunt",
-    blurb: "Find colourful eggs inside a chosen safe-zone experience. Bonus points for the household.",
+    blurb:
+      "Find colourful eggs inside a chosen safe-zone experience. Bonus points for the household.",
     accent: "green" as Accent,
   },
   {
