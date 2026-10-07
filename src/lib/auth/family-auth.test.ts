@@ -91,6 +91,37 @@ for (const backend of ["pglite", "postgres"] as const) {
           headers,
         });
         assert.equal(fresh.user.emailVerified, true);
+        // Better Auth can swallow signup delivery failures. A successful
+        // signup response is not proof that mail was sent or a login grant.
+        const offlineMail = betterAuth({
+          baseURL: "http://localhost:8080",
+          secret: "synthetic-local-test-secret-32-characters-only",
+          database: pool ?? { dialect: pgliteDialect(() => db!), type: "postgres" },
+          ...familyEmailOptions(async () => {
+            throw new Error("synthetic-mail-unavailable");
+          }),
+          rateLimit: { enabled: false },
+        });
+        const unconfirmedEmail = `unconfirmed-${randomUUID()}@example.test`;
+        const unconfirmed = await offlineMail.api.signUpEmail({
+          body: {
+            email: unconfirmedEmail,
+            password: "synthetic-password-one",
+            name: "Unconfirmed test account",
+          },
+          headers,
+        });
+        assert.equal(unconfirmed.user.emailVerified, false);
+        assert.equal(unconfirmed.token, null);
+        await assert.rejects(
+          offlineMail.api.signInEmail({
+            body: { email: unconfirmedEmail, password: "synthetic-password-one" },
+            headers,
+          }),
+        );
+        await assert.rejects(
+          offlineMail.api.sendVerificationEmail({ body: { email: unconfirmedEmail }, headers }),
+        );
         const query = async (text: string, values: unknown[]) =>
           pool ? (await pool.query(text, values)).rows : (await db!.query(text, values)).rows;
         const sql = (async (parts: TemplateStringsArray, ...values: unknown[]) => {

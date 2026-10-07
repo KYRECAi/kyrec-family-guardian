@@ -78,6 +78,8 @@ The production dependency audit found a high-severity source-map-js advisory and
 **FAIL**  
 Baseline Guardian fixture/export failures were reproduced and corrected without changing PWA product metadata. New limiter-capacity regression failed before its fix and passed afterward. A transient typecheck failure after removing a prototype sharing variable was fixed. Two existing lint errors (mutable binding and empty catch) were corrected. Local Playwright browser installation failed because its download endpoint returned invalid/empty archives; browser verification is assigned to CI and must be checked there. AWS console access failed. No local Docker or PostgreSQL daemon is available. These limitations are not reported as passes.
 
+The final auth-library review confirmed that Better Auth can swallow a signup email callback failure and return a pending, unverified account. Account/reset notices now acknowledge a request without promising a delivery. PGLite and PostgreSQL lifecycle coverage verifies that such an account gets no session and cannot sign in, and failed resend surfaces an error. Resend delivery still requires an actual provider receipt; no real recipient was contacted in this test.
+
 **PRIVACY / SECURITY IMPACT**  
 No real family data, API keys, account emails or private transcripts were used. No email was sent to a person. Service/model/email credentials remain server-side, and authenticated provider calls reject redirects. Google browser keys are deliberately public and must be referrer- and API-restricted in Google Cloud before a pilot.
 

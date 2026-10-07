@@ -59,20 +59,20 @@ export function AccountPanel() {
       if (result.error) {
         setNotice(
           mode === "forgot"
-            ? "If that address has an account, a reset link will arrive. Check your inbox and spam folder."
+            ? "Check your inbox and spam folder for a reset link if that address has an account. If no link arrives, try again later."
             : mode === "signin"
               ? "Sign-in failed. Check your email, password and confirmation email."
               : "Could not complete that request. Check the details or request a new link.",
         );
       } else if (mode === "signup") {
         setNotice(
-          "Check your email to confirm your account, then sign in. The link expires in one hour.",
+          "Account request received. Confirm your email before signing in. If no email arrives, use Resend confirmation. Confirmation links expire after one hour.",
         );
         setMode("signin");
         setPassword("");
       } else if (mode === "forgot")
         setNotice(
-          "If that address has an account, a reset link will arrive. Check your inbox and spam folder.",
+          "Check your inbox and spam folder for a reset link if that address has an account. If no link arrives, try again later.",
         );
       else if (mode === "reset") {
         setNotice("Password reset. Sign in with your new password.");
@@ -96,7 +96,7 @@ export function AccountPanel() {
       });
       if (result.error) throw new Error("Email request failed");
       setNotice(
-        "If confirmation is needed, a fresh link will arrive. Check your inbox and spam folder.",
+        "Confirmation request received. Check your inbox and spam folder if that account still needs confirmation.",
       );
     } catch {
       setNotice("Email delivery is unavailable. Try again shortly.");
