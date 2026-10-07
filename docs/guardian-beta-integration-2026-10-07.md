@@ -75,6 +75,8 @@ At preparation: Core 289 Python tests passed, one PostgreSQL test skipped locall
 
 The production dependency audit found a high-severity source-map-js advisory and a moderate optional fast-uri advisory. source-map-js was updated to 1.2.2, unused optional peer entries were removed by npm, and the runtime audit now reports zero vulnerabilities. Tests/typecheck/lint were rerun against that lockfile. CI requires the same audit and checks out the exact head SHA used in container source labels.
 
+The complete dependency audit also identified brace-expansion in lint tooling. Compatible patches update 1.1.18 to 1.1.21 and 5.0.9 to 5.0.12. CI now audits all installed dependencies, including build/lint tools. The source advisories are [GHSA-qhr7-859c-m2p7](https://github.com/advisories/GHSA-qhr7-859c-m2p7) and [GHSA-q2hr-2g5m-vwhr](https://github.com/advisories/GHSA-q2hr-2g5m-vwhr); this finding is not described as a confirmed public app exploit.
+
 **FAIL**  
 Baseline Guardian fixture/export failures were reproduced and corrected without changing PWA product metadata. New limiter-capacity regression failed before its fix and passed afterward. A transient typecheck failure after removing a prototype sharing variable was fixed. Two existing lint errors (mutable binding and empty catch) were corrected. Local Playwright browser installation failed because its download endpoint returned invalid/empty archives; browser verification is assigned to CI and must be checked there. AWS console access failed. No local Docker or PostgreSQL daemon is available. These limitations are not reported as passes.
 

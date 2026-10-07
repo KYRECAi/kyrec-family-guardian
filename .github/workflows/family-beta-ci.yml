@@ -52,7 +52,7 @@ jobs:
           npm run typecheck
           npm run lint
           npm test
-          npm audit --omit=dev --audit-level=moderate
+          npm audit --audit-level=moderate
       - name: Install isolated test browser
         run: npx playwright install --with-deps chromium
       - name: Development phone and desktop account gate
