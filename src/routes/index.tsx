@@ -64,12 +64,9 @@ function Home() {
 
   return (
     <div className="relative -mx-4 min-h-[calc(100dvh-6.5rem)] overflow-hidden pb-8">
-      <img src="/brand/home.jpg" alt="" className="absolute inset-0 size-full object-cover" />
-      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgb(248_232_239_/_0.2),rgb(248_232_239_/_0.72)_36%,rgb(248_232_239_/_0.96))]" />
-
       <div className="relative mx-auto max-w-lg px-4 pt-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="rounded-[24px] bg-white/80 px-4 py-3 shadow-[var(--shadow-border)] backdrop-blur-md">
+        <div className="rounded-[24px] bg-panel px-4 py-3 shadow-[var(--shadow-border)] backdrop-blur-md">
           <p className="text-[11px] font-semibold tracking-[0.2em] text-violet uppercase">{familyName}</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {clock.greeting}, {displayName}
@@ -78,14 +75,14 @@ function Home() {
             {paused ? "Sharing is paused." : `${inZones} of ${people.filter((m) => !m.guest).length} are home.`}
           </p>
         </div>
-        <Link to="/settings" className="shrink-0 rounded-full bg-white/80 p-1 shadow-[var(--shadow-border)] backdrop-blur-md">
+        <Link to="/settings" className="shrink-0 rounded-full bg-panel p-1 shadow-[var(--shadow-border)] backdrop-blur-md">
           <MemberAvatar member={MEMBERS[0]!} src={face} size={48} />
         </Link>
       </div>
 
       <div className="relative mt-4">
         {job.id === "map" ? (
-          <Link to="/map" className="flex gap-3 overflow-hidden rounded-[28px] bg-white/88 p-4 shadow-[var(--shadow-lift)] backdrop-blur-md">
+          <Link to="/map" className="flex gap-3 overflow-hidden rounded-[28px] bg-panel p-4 shadow-[var(--shadow-lift)] backdrop-blur-md">
             <img src="/brand/home.jpg" alt="" className="h-28 w-24 shrink-0 rounded-2xl object-cover" />
             <div>
               <p className="text-[11px] font-semibold tracking-[0.16em] text-violet uppercase">{job.kicker}</p>
@@ -95,7 +92,7 @@ function Home() {
             </div>
           </Link>
         ) : (
-          <Link to="/companions/$id" params={{ id: job.id }} className="flex gap-3 overflow-hidden rounded-[28px] bg-white/88 p-4 shadow-[var(--shadow-lift)] backdrop-blur-md">
+          <Link to="/companions/$id" params={{ id: job.id }} className="flex gap-3 overflow-hidden rounded-[28px] bg-panel p-4 shadow-[var(--shadow-lift)] backdrop-blur-md">
             <img src={lead?.portrait} alt="" className="h-28 w-24 shrink-0 rounded-2xl object-cover object-[center_12%]" />
             <div>
               <p className="text-[11px] font-semibold tracking-[0.16em] text-violet uppercase">{job.kicker}</p>
@@ -109,7 +106,7 @@ function Home() {
 
       <ul className="relative mt-4 space-y-2">
         <li>
-          <Link to="/map" className="flex items-center gap-3 rounded-[22px] bg-white/92 px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
+          <Link to="/map" className="flex items-center gap-3 rounded-[22px] bg-panel px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
             <span className="grid size-10 place-items-center rounded-2xl bg-orange/15 text-orange"><MapPinned className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">Who’s home</span>
@@ -118,7 +115,7 @@ function Home() {
           </Link>
         </li>
         <li>
-          <Link to="/companions/$id" params={{ id: "pulse" }} className="flex items-center gap-3 rounded-[22px] bg-white/92 px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
+          <Link to="/companions/$id" params={{ id: "pulse" }} className="flex items-center gap-3 rounded-[22px] bg-panel px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
             <span className="grid size-10 place-items-center rounded-2xl bg-mint/15 text-mint"><CalendarDays className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">The day</span>
@@ -127,7 +124,7 @@ function Home() {
           </Link>
         </li>
         <li>
-          <Link to="/companions/$id" params={{ id: "stan" }} className="flex items-center gap-3 rounded-[22px] bg-white/92 px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
+          <Link to="/companions/$id" params={{ id: "stan" }} className="flex items-center gap-3 rounded-[22px] bg-panel px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
             <span className="grid size-10 place-items-center rounded-2xl bg-violet/15 text-violet"><Sparkles className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">A decision</span>
@@ -136,7 +133,7 @@ function Home() {
           </Link>
         </li>
         <li>
-          <Link to="/companions/$id" params={{ id: "nova" }} className="flex items-center gap-3 rounded-[22px] bg-white/92 px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
+          <Link to="/companions/$id" params={{ id: "nova" }} className="flex items-center gap-3 rounded-[22px] bg-panel px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
             <span className="grid size-10 place-items-center rounded-2xl bg-gold/20 text-orange"><ShoppingBag className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">The shop list</span>
@@ -145,7 +142,7 @@ function Home() {
           </Link>
         </li>
         <li>
-          <Link to="/companions/$id" params={{ id: "scout" }} className="flex items-center gap-3 rounded-[22px] bg-white/92 px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
+          <Link to="/companions/$id" params={{ id: "scout" }} className="flex items-center gap-3 rounded-[22px] bg-panel px-3 py-2.5 shadow-[var(--shadow-border)] backdrop-blur-md">
             <span className="grid size-10 place-items-center rounded-2xl bg-blue/15 text-blue"><Compass className="size-5" /></span>
             <span className="min-w-0 flex-1">
               <span className="block text-sm font-semibold">A destination</span>

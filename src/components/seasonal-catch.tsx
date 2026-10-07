@@ -257,9 +257,13 @@ export function SeasonalCatch({ id }: { id: ThemeId }) {
             <div className="pointer-events-auto w-full rounded-xl bg-panel/95 p-5 shadow-[var(--shadow-lift)] backdrop-blur-md">
               {phase === "ready" ? (
                 <>
-                  <h2 className="text-xl font-semibold tracking-tight">Play as the family</h2>
+                  <h2 className="text-xl font-semibold tracking-tight">
+                    {theme.id === "moneybags" ? "Catch the coins" : "Play as the family"}
+                  </h2>
                   <p className="mt-2 text-sm leading-relaxed text-muted">
-                    Everyone contributes to one household score. Opt-in play, no pay-to-win. Drag or use arrow keys.
+                    {theme.id === "moneybags"
+                      ? "Drag to catch the coins. One household bonus. Nobody is singled out."
+                      : "Everyone contributes to one household score. Opt-in play, no pay-to-win. Drag or use arrow keys."}
                   </p>
                   <p className="mt-2 text-xs text-subtle">Household best {best}</p>
                   <Button className="mt-5 w-full" onClick={start}>

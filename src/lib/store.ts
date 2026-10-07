@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { HOUSEHOLD, type MemberId } from "@/lib/family";
 import type { PlanId } from "@/lib/plans";
+import { isLook, type LookId } from "@/lib/looks";
 
 export type Mood = "light" | "steady" | "low" | "bright";
 
@@ -42,8 +43,10 @@ type State = {
   rhythm: Record<string, boolean>;
   chats: Record<string, { role: "user" | "them"; text: string }[]>;
   meals: { id: string; title: string }[];
-  groceries: { id: string; item: string; by: string | null; from: string | null }[];
+  groceries: { id: string; item: string; by: string | null; from: string | null; snatchedBy?: string | null }[];
   regulars: string[];
+  shopSeed: string;
+  snatchOn: boolean;
   itemUses: Record<string, number>;
   itemBuys: Record<string, number[]>;
   itemEvery: Record<string, number>;
@@ -61,6 +64,9 @@ type State = {
   familyName: string;
   nicknames: Record<string, string>;
   guests: { id: string; name: string; nickname: string }[];
+  look: LookId;
+  setLook: (look: LookId) => void;
+  setSnatchOn: (on: boolean) => void;
   togglePaused: () => void;
   setSharing: (id: string, on: boolean) => void;
   setAlertPref: (key: keyof State["alertPrefs"], on: boolean) => void;
@@ -157,20 +163,10 @@ const defaults = {
     { id: "m1", title: "Tuesday · pasta" },
     { id: "m2", title: "Friday · fish" },
   ],
-  groceries: [
-    { id: "g-fruit", item: "Fruit", by: null, from: null },
-    { id: "g-bread", item: "Bread", by: null, from: null },
-    { id: "g-milk", item: "Milk", by: null, from: null },
-    { id: "g-sugar", item: "Sugar", by: null, from: null },
-    { id: "g-eggs", item: "Eggs", by: null, from: null },
-    { id: "g-pancakes", item: "Pancakes", by: null, from: null },
-    { id: "g-cakes", item: "Cakes", by: null, from: null },
-    { id: "g-ham", item: "Ham", by: null, from: null },
-    { id: "g-bacon", item: "Bacon", by: null, from: null },
-    { id: "g-tomatoes", item: "Tomatoes", by: null, from: null },
-    { id: "g-cucumber", item: "Cucumber", by: null, from: null },
-  ] as { id: string; item: string; by: string | null; from: string | null }[],
-  regulars: ["Fruit", "Bread", "Milk", "Sugar", "Eggs", "Pancakes", "Cakes", "Ham", "Bacon", "Tomatoes", "Cucumber"],
+  groceries: [] as { id: string; item: string; by: string | null; from: string | null }[],
+  regulars: ["Milk", "Bread", "Eggs", "Coffee"],
+  shopSeed: "blank",
+  snatchOn: true,
   itemUses: {} as Record<string, number>,
   itemBuys: {} as Record<string, number[]>,
   itemEvery: {} as Record<string, number>,
@@ -190,6 +186,7 @@ const defaults = {
   familyName: "Family",
   nicknames: {} as Record<string, string>,
   guests: [] as { id: string; name: string; nickname: string }[],
+  look: "pink" as LookId,
   stanMessages: [
     {
       role: "stan" as const,
@@ -248,7 +245,7 @@ export const useGuardian = create<State>()(
         });
       },
       addMood: (mood, note) =>
-        set({ novaMoods: [{ at: Date.now(), mood, note }, ...get().novaMoods].slice(0, 12) }),
+        set({ novaMoods: [{ at: Date.now(), mood, note }, ...(get().novaMoods ?? [])].slice(0, 12) }),
       addStan: (msg) => set({ stanMessages: [...get().stanMessages, msg].slice(-24) }),
       setPlan: (plan) => set({ plan, subscribedAt: plan === "free" ? get().subscribedAt : Date.now() }),
       toggleScout: () => set({ scoutOn: !get().scoutOn, subscribedAt: Date.now() }),
@@ -317,7 +314,7 @@ export const useGuardian = create<State>()(
         if (!name) return;
         const list = get().groceries ?? [];
         if (list.some((g) => g.item.trim().toLowerCase() === name.toLowerCase())) return;
-        set({ groceries: [...list, { id: `g-${crypto.randomUUID()}`, item: name, by: null, from: null }] });
+        set({ groceries: [...list, { id: `g-${crypto.randomUUID()}`, item: name, by: null, from: null, snatchedBy: null }] });
       },
       noteItemUse: (item) => {
         const key = item.trim().toLowerCase();
@@ -378,10 +375,9 @@ export const useGuardian = create<State>()(
         const list = uniqueGroceries(get().groceries ?? []);
         const index = list.findIndex((g) => g.id === id);
         const row = list[index];
-        if (!row?.by || row.by === by || row.from) return;
-        const from = row.by;
+        if (!row || row.snatchedBy) return;
         const next = list.slice();
-        next[index] = { ...row, by, from };
+        next[index] = { ...row, snatchedBy: by };
         set({ groceries: next, points: get().points + 30 });
       },
       repairGroceries: () => {
@@ -390,28 +386,26 @@ export const useGuardian = create<State>()(
         if (next.some((g, i) => g.id !== list[i]?.id)) set({ groceries: next });
       },
       ensureStaples: () => {
-        const starter = ["Fruit", "Bread", "Milk", "Sugar", "Eggs", "Pancakes", "Cakes", "Ham", "Bacon", "Tomatoes", "Cucumber"];
-        const regulars = get().regulars?.length ? get().regulars : starter;
-        const list = uniqueGroceries(get().groceries ?? []);
-        const have = new Set(list.map((g) => g.item.trim().toLowerCase()));
-        const extra = regulars
-          .filter((item) => !have.has(item.toLowerCase()))
-          .map((item) => ({ id: `g-${crypto.randomUUID()}`, item, by: null, from: null }));
-        const idsChanged = list.some((g, i) => g.id !== (get().groceries ?? [])[i]?.id);
-        const seeded = !get().regulars?.length;
-        if (extra.length || idsChanged || seeded) {
+        const four = ["Milk", "Bread", "Eggs", "Coffee"];
+        if (get().shopSeed !== "blank") {
           set({
-            groceries: [...list, ...extra],
-            regulars,
+            groceries: [],
+            regulars: four,
+            shopSeed: "blank",
           });
+          return;
         }
+        const list = get().groceries ?? [];
+        const next = uniqueGroceries(list);
+        if (next.some((g, i) => g.id !== list[i]?.id)) set({ groceries: next });
+        if (!(get().regulars ?? []).length) set({ regulars: four });
       },
       clearGrocery: (id) => {
         const list = uniqueGroceries(get().groceries ?? []);
         const index = list.findIndex((g) => g.id === id);
         const row = list[index];
         if (!row) return;
-        const back = row.from ? 45 : row.by ? 15 : 0;
+        const back = row.snatchedBy ? 30 : 0;
         set({
           groceries: list.filter((_, i) => i !== index),
           points: Math.max(0, get().points - back),
@@ -478,6 +472,10 @@ export const useGuardian = create<State>()(
         });
       },
       removeGuest: (id) => set({ guests: (get().guests ?? []).filter((g) => g.id !== id) }),
+      setLook: (look) => {
+        if (isLook(look)) set({ look });
+      },
+      setSnatchOn: (on) => set({ snatchOn: on }),
       resetDemo: () => set({ ...defaults }),
     }),
     { name: "kyrec-family-guardian-v6", skipHydration: true },

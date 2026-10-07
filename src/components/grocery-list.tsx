@@ -34,9 +34,10 @@ export function GroceryList() {
   const unmarkGrocery = useGuardian((s) => s.unmarkGrocery);
   const snatchGrocery = useGuardian((s) => s.snatchGrocery);
   const clearGrocery = useGuardian((s) => s.clearGrocery);
+  const snatchOn = useGuardian((s) => s.snatchOn);
+  const setSnatchOn = useGuardian((s) => s.setSnatchOn);
   const ensureStaples = useGuardian((s) => s.ensureStaples);
   const saveRegular = useGuardian((s) => s.saveRegular);
-  const dropRegular = useGuardian((s) => s.dropRegular);
   const noteItemUse = useGuardian((s) => s.noteItemUse);
   const setItemEvery = useGuardian((s) => s.setItemEvery);
   const snoozeItem = useGuardian((s) => s.snoozeItem);
@@ -55,9 +56,9 @@ export function GroceryList() {
   const [hits, setHits] = useState<Hit[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
-  const [ask, setAsk] = useState<string | null>(null);
   const [offer, setOffer] = useState<{ name: string; again: boolean } | null>(null);
   const [pace, setPace] = useState<string | null>(null);
+  const [ticked, setTicked] = useState<Record<string, boolean>>({});
   const { people: household } = usePeople();
   const now = Date.now();
   const due = regulars.flatMap((name) => {
@@ -74,8 +75,11 @@ export function GroceryList() {
   }).slice(0, 2);
 
   useEffect(() => {
-    ensureStaples();
-  }, [ensureStaples]);
+    const persist = useGuardian.persist;
+    const run = () => useGuardian.getState().ensureStaples();
+    if (persist.hasHydrated()) run();
+    return persist.onFinishHydration(run);
+  }, []);
 
   async function searchPublic() {
     const q = taste.trim() || "chicken";
@@ -111,12 +115,12 @@ export function GroceryList() {
 
   return (
     <section className="mt-4 rounded-[24px] bg-panel p-4 shadow-[var(--shadow-border)]">
-      <h2 className="text-sm font-semibold">Menu & groceries</h2>
-      <p className="mt-1 text-xs text-muted">
-        Shared list for this house. It keeps what you save, and asks when the usual gap has passed. No supermarket order yet.
-      </p>
+      <h2 className="text-center text-lg font-bold tracking-[0.16em]">SHARED SHOP</h2>
+      <p className="mt-1 text-center text-xs text-muted">One list. The whole house.</p>
 
-      <div className="mt-3 rounded-2xl bg-ink-2 p-3">
+      <details className="mt-3 rounded-2xl bg-ink-2 p-3">
+        <summary className="cursor-pointer text-sm font-semibold">Meals, if you want them</summary>
+        <div className="mt-3 rounded-2xl bg-panel p-3">
         <p className="text-[11px] font-semibold tracking-wide text-violet uppercase">KYREC Core</p>
         <ul className="mt-2 space-y-1 text-sm">
           <li>Pulse told Nova: kids’ sport is at 4.</li>
@@ -231,6 +235,7 @@ export function GroceryList() {
           Add
         </button>
       </form>
+      </details>
 
       {due.length ? (
         <ul className="mt-4 space-y-2">
@@ -268,86 +273,100 @@ export function GroceryList() {
         </ul>
       ) : null}
 
-      <ul className="mt-4 flex flex-wrap gap-2">
-        {groceries.map((g) => {
-          const who = g.by ? household.find((p) => p.id === g.by) : null;
-          const from = g.from ? household.find((p) => p.id === g.from) : null;
-          const you = household.find((p) => p.you)?.id ?? "michael";
-          const mine = g.by === you && !g.from;
-          const on = Boolean(g.by);
-          const kept = regulars.some((r) => r.toLowerCase() === g.item.trim().toLowerCase());
-          const every = itemEvery[g.item.trim().toLowerCase()];
-          const paceLabel =
-            every === 3 ? "few days" : every === 7 ? "weekly" : every === 14 ? "fortnight" : every === 30 ? "monthly" : every ? `${every}d` : null;
+      <div className="mt-3 flex items-center justify-between gap-3">
+        <p className="text-xs text-muted">Shared. Tap one and it lands for everyone.</p>
+        <button
+          type="button"
+          onClick={() => setSnatchOn(snatchOn === false)}
+          className={`shrink-0 rounded-full px-3 py-1 text-xs font-semibold ${snatchOn === false ? "bg-ink-2 text-muted" : "bg-gold text-navy"}`}
+        >
+          {snatchOn === false ? "Snatch off" : "Snatch on"}
+        </button>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2">
+        {(regulars.length ? regulars : ["Milk", "Bread", "Eggs", "Coffee"]).map((name) => {
+          const onPad = groceries.some((g) => g.item.trim().toLowerCase() === name.trim().toLowerCase());
           return (
-            <li key={g.id}>
-              <button
-                type="button"
-                onClick={() => {
-                  if (!g.by) {
-                    markGrocery(g.id, you);
-                    const times = (itemUses[g.item.trim().toLowerCase()] ?? 0) + 1;
-                    noteItemUse(g.item);
-                    if (!kept && times >= 2) setOffer({ name: g.item, again: true });
-                  } else if (mine) unmarkGrocery(g.id);
-                  else setAsk(g.id);
-                }}
-                className={`rounded-full px-3 py-2 text-sm font-semibold ${on ? "bg-mint/25 text-fg" : "bg-ink-2"}`}
-              >
-                {g.item}
-                {kept ? <span className="ml-1 text-[10px] font-medium text-muted">{paceLabel ?? "kept"}</span> : null}
-                {who ? <span className="ml-1 text-[11px] font-medium text-muted">{from ? `${who.short} snatched` : who.short}</span> : null}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {ask ? (
-        <div className="mt-3 rounded-2xl bg-ink-2 p-3">
-          <p className="text-sm font-medium">
-            Snatch just the {groceries.find((g) => g.id === ask)?.item.toLowerCase()}?
-          </p>
-          <p className="mt-1 text-xs text-muted">Only this one. The rest stays where it is.</p>
-          <div className="mt-2 flex gap-2">
             <button
+              key={name}
               type="button"
               onClick={() => {
-                const you = household.find((p) => p.you)?.id ?? "michael";
-                snatchGrocery(ask, you);
-                setAsk(null);
+                if (!onPad) addGrocery(name);
               }}
-              className="rounded-full bg-gold px-3 py-1.5 text-xs font-semibold text-navy"
+              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${onPad ? "bg-ink-2 text-muted" : "bg-violet text-paper"}`}
             >
-              Yes, just this one
+              {name}
             </button>
-            <button type="button" onClick={() => setAsk(null)} className="rounded-full px-3 py-1.5 text-xs text-muted">
-              Leave it
-            </button>
-            {(() => {
-              const row = groceries.find((g) => g.id === ask);
-              const kept = row && regulars.some((r) => r.toLowerCase() === row.item.trim().toLowerCase());
-              return kept ? (
+          );
+        })}
+      </div>
+      <div
+        className="mt-3 overflow-hidden rounded-[20px] border border-line bg-panel"
+        style={{
+          backgroundImage:
+            "repeating-linear-gradient(to bottom, transparent, transparent 55px, color-mix(in oklab, var(--color-fg) 16%, transparent) 56px)",
+          backgroundPosition: "0 8px",
+        }}
+      >
+        <ul>
+          {Array.from({ length: Math.max(8, groceries.length) }, (_, i) => groceries[i] ?? null).map((g, i) => {
+            if (!g) {
+              return (
+                <li key={`blank-${i}`} className="flex h-12 items-center px-3">
+                  <span className="size-6 rounded-full border-2 border-fg/25" />
+                </li>
+              );
+            }
+            const you = household.find((p) => p.you)?.id ?? "michael";
+            const snatched = Boolean(g.snatchedBy);
+            const on = Boolean(ticked[g.id]);
+            return (
+              <li key={g.id} className="flex h-14 items-center gap-3 px-3">
                 <button
                   type="button"
-                  onClick={() => {
-                    if (!row) return;
-                    dropRegular(row.item);
-                    clearGrocery(ask);
-                    setAsk(null);
-                  }}
-                  className="rounded-full px-3 py-1.5 text-xs text-muted"
+                  aria-label={on ? `Untick ${g.item}` : `Tick ${g.item}`}
+                  onClick={() => setTicked((cur) => ({ ...cur, [g.id]: !cur[g.id] }))}
+                  className={`grid size-7 shrink-0 place-items-center rounded-full border text-xs ${on ? "border-violet bg-violet text-paper shadow-[0_0_12px_rgba(122,62,239,0.45)]" : "border-fg/25 bg-transparent"}`}
                 >
-                  Stop keeping
+                  {on ? "✓" : ""}
                 </button>
-              ) : (
-                <button type="button" onClick={() => { clearGrocery(ask); setAsk(null); }} className="rounded-full px-3 py-1.5 text-xs text-muted">
-                  Remove
+                <button
+                  type="button"
+                  onClick={() => setTicked((cur) => ({ ...cur, [g.id]: !cur[g.id] }))}
+                  className="min-w-0 flex-1 text-left"
+                >
+                  <span className={`block truncate text-base ${on ? "text-muted" : "text-fg"}`}>{g.item}</span>
+                  <span className="block text-[11px] font-medium text-violet/80">15 family points</span>
                 </button>
-              );
-            })()}
-          </div>
-        </div>
-      ) : null}
+                {snatchOn === false ? null : (
+                  <button
+                    type="button"
+                    disabled={snatched}
+                    onClick={() => snatchGrocery(g.id, you)}
+                    className={`h-9 shrink-0 rounded-full px-3 text-xs font-semibold ${snatched ? "bg-ink-2 text-muted" : "bg-gold text-navy shadow-[0_0_18px_rgba(245,185,66,0.55)]"}`}
+                  >
+                    {snatched ? "Snatched" : "2× Snatch"}
+                  </button>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {groceries.some((g) => ticked[g.id]) ? (
+          <button
+            type="button"
+            onClick={() => {
+              for (const row of groceries) {
+                if (ticked[row.id]) clearGrocery(row.id);
+              }
+              setTicked({});
+            }}
+            className="flex h-12 w-full items-center justify-center text-xs font-medium text-muted"
+          >
+            Delete ticked
+          </button>
+        ) : null}
+      </div>
       {offer ? (
         <div className="mt-3 rounded-2xl bg-ink-2 p-3">
           <p className="text-sm font-medium">

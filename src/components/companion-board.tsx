@@ -218,6 +218,17 @@ export function CompanionBoard({ id }: { id: CompanionId }) {
 
   const board = copy[id];
   const HeadIcon = board.icon;
+  const felt = moods[0]?.mood;
+  const feltLine =
+    felt === "low"
+      ? "Low is noted. Stay close. It is not a score."
+      : felt === "light"
+        ? "Light is noted. Leave some room in the day."
+        : felt === "bright"
+          ? "Bright is noted. Keep the day ordinary."
+          : felt === "steady"
+            ? "Steady is noted. Nothing needs fixing."
+            : null;
 
   return (
     <div className="mt-4 space-y-3">
@@ -308,7 +319,7 @@ export function CompanionBoard({ id }: { id: CompanionId }) {
             <Sparkles className="size-4 text-[#7c3aed]" />
             {board.sign} note
           </p>
-          <p className="mt-3 text-[15px] leading-snug font-medium text-[#2a2140]">“{board.note}”</p>
+          <p className="mt-3 text-[15px] leading-snug font-medium text-[#2a2140]">“{feltLine ?? board.note}”</p>
           <p className="mt-3 text-xs text-muted">– {board.sign}</p>
           <span className="pointer-events-none absolute -right-3 -bottom-4 size-16 rounded-full bg-[#7c3aed]/80 shadow-[0_0_24px_rgba(124,58,237,0.7)]" />
           <span className="pointer-events-none absolute right-3 bottom-6 h-8 w-16 rounded-full border border-white/70" />

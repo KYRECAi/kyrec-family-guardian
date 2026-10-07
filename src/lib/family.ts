@@ -346,8 +346,8 @@ export const GAMES = [
   {
     id: "valentine",
     season: "Valentine's Day",
-    title: "Valentine's Love Dash",
-    blurb: "Collect hearts, kindness notes and family bonuses in a bright cooperative challenge.",
+    title: "Valentine Crush",
+    blurb: "Match hearts in a short family round. One household score.",
     accent: "pink" as Accent,
   },
   {

@@ -1,6 +1,7 @@
-import { cn } from "@/lib/utils";
-import { tokenColor } from "@/lib/utils";
+import { avatarSrc } from "@/lib/avatars";
 import type { Member } from "@/lib/family";
+import { useGuardian } from "@/lib/store";
+import { cn, tokenColor } from "@/lib/utils";
 
 export function MemberAvatar({
   member,
@@ -10,15 +11,19 @@ export function MemberAvatar({
   src,
   className,
 }: {
-  member: Pick<Member, "name" | "avatar" | "accent" | "short" | "initial">;
+  member: Pick<Member, "name" | "avatar" | "accent" | "short" | "initial"> & { id?: string; you?: boolean };
   size?: number;
   ring?: boolean;
   paused?: boolean;
   src?: string | null;
   className?: string;
 }) {
+  const youPhoto = useGuardian((s) => s.youPhoto);
+  const avatarId = useGuardian((s) => s.avatarId);
+  const isYou = member.you || member.id === "michael";
+  const yours = isYou ? youPhoto || (avatarId ? avatarSrc(avatarId) : null) : null;
   const initial = member.initial ?? member.short.slice(0, 1);
-  const photo = src || member.avatar;
+  const photo = src || yours || member.avatar;
   return (
     <span
       className={cn("relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-paper", className)}

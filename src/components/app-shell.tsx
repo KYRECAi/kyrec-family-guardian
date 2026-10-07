@@ -16,6 +16,7 @@ import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import { MemberAvatar } from "@/components/member-avatar";
+import { Splash } from "@/components/splash";
 import { Badge } from "@/components/ui/badge";
 import { MEMBERS } from "@/lib/family";
 import { avatarSrc } from "@/lib/avatars";
@@ -49,16 +50,22 @@ export function AppShell({ children }: { children: ReactNode }) {
   const paused = useGuardian((s) => s.locationPaused);
   const togglePaused = useGuardian((s) => s.togglePaused);
   const [more, setMore] = useState(false);
+  const [boot, setBoot] = useState(true);
   const you = MEMBERS[0]!;
   const displayName = useGuardian((s) => s.displayName) || "You";
   const username = useGuardian((s) => s.username);
   const youPhoto = useGuardian((s) => s.youPhoto);
   const avatarId = useGuardian((s) => s.avatarId);
   const face = youPhoto || (avatarId ? avatarSrc(avatarId) : null);
+  const look = useGuardian((s) => s.look) || "pink";
 
   useEffect(() => {
     void useGuardian.persist.rehydrate();
   }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.look = look;
+  }, [look]);
 
   function onPause() {
     togglePaused();
@@ -72,6 +79,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (isGame) {
     return (
       <>
+        {boot ? <Splash onDone={() => setBoot(false)} /> : null}
         <div className="kyrec-atmosphere" aria-hidden />
         <div className="relative z-10 min-h-dvh">{children}</div>
         <Toaster theme="light" position="top-center" />
@@ -81,6 +89,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <>
+      {boot ? <Splash onDone={() => setBoot(false)} /> : null}
       <div className="kyrec-atmosphere" aria-hidden />
       <div className={cn("relative z-10", immersive ? "min-h-dvh" : "mx-auto flex min-h-dvh max-w-[1240px]")}>
         <aside

@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UpgradeGate } from "@/components/upgrade-gate";
 import { SeasonalCatch } from "@/components/seasonal-catch";
+import { ValentineCrush } from "@/components/valentine-crush";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/games/$id")({ component: GamePlay });
@@ -17,11 +17,8 @@ function GamePlay() {
       </div>
     );
   }
+  if (id === "valentine") return <ValentineCrush />;
   if (id === "moneybags") return <SeasonalCatch id="moneybags" />;
 
-  return (
-    <UpgradeGate need="plus" companion="stan" headline="Family points for the shop run, not a score against anyone.">
-      <SeasonalCatch id={id} />
-    </UpgradeGate>
-  );
+  return <SeasonalCatch id={id} />;
 }

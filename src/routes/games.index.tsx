@@ -1,5 +1,4 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { UpgradeGate } from "@/components/upgrade-gate";
 import { GAMES } from "@/lib/family";
 import { useGuardian } from "@/lib/store";
 
@@ -9,7 +8,6 @@ function GamesPage() {
   const best = useGuardian((s) => s.gameBest);
 
   return (
-    <UpgradeGate need="plus" companion="stan" headline="Family points for the shop run, not a score against anyone.">
     <div className="mx-auto max-w-5xl py-5">
       <p className="text-[11px] font-medium tracking-[0.16em] text-muted uppercase">Seasonal family games</p>
       <h1 className="mt-1 text-3xl font-semibold tracking-tight">Family points become family moments</h1>
@@ -33,6 +31,5 @@ function GamesPage() {
         ))}
       </div>
     </div>
-    </UpgradeGate>
   );
 }

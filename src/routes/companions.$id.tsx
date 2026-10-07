@@ -76,11 +76,15 @@ function CompanionPage() {
   const c = Route.useLoaderData();
   const points = useGuardian((s) => s.points);
   const addMood = useGuardian((s) => s.addMood);
+  const current = useGuardian((s) => s.novaMoods?.[0]?.mood);
   const others = COMPANION_ORDER.filter((id) => id !== c.id).slice(0, 3);
   const goal = HOUSEHOLD.pointsGoal;
   const [fullChat, setFullChat] = useState(false);
   const scoutLogs = useGuardian((s) => s.scoutLogs) ?? [];
   const latestTrip = scoutLogs[0];
+  const paused = useGuardian((s) => s.locationPaused);
+  const events = useGuardian((s) => s.events) ?? [];
+  const spent = useGuardian((s) => s.budgetSpent);
 
   return (
     <div className="mx-auto max-w-lg pb-8">
@@ -108,7 +112,18 @@ function CompanionPage() {
       </div>
       {fullChat ? <CompanionChat id={c.id} full onClose={() => setFullChat(false)} /> : null}
 
-      {c.id === "nova" ? <NovaPointsTile points={points} goal={goal} /> : null}
+      <PurpleBox
+        spec={purpleSpec({
+          id: c.id,
+          points,
+          goal,
+          paused,
+          events: events.length,
+          place: latestTrip?.place,
+          spent,
+          budget: HOUSEHOLD.budgetTarget,
+        })}
+      />
 
       {c.id === "nova" ? (
         <>
@@ -188,17 +203,25 @@ function CompanionPage() {
         <h2 className="text-sm font-semibold">How are you</h2>
         <p className="mt-1 text-xs text-muted">Optional. On this device. Not a score.</p>
         <div className="mt-2 grid grid-cols-4 gap-2">
-          {FEELS.map((feel) => (
-            <button
-              key={feel.id}
-              type="button"
-              onClick={() => addMood(feel.id, "")}
-              className="rounded-2xl bg-panel py-3 text-xs font-medium shadow-[var(--shadow-border)]"
-            >
-              {feel.label}
-            </button>
-          ))}
+          {FEELS.map((feel) => {
+            const on = current === feel.id;
+            return (
+              <button
+                key={feel.id}
+                type="button"
+                onClick={() => addMood(feel.id, c.name)}
+                className={`rounded-full py-3 text-xs font-semibold ${on ? "bg-violet text-paper" : "bg-panel text-fg shadow-[var(--shadow-border)]"}`}
+              >
+                {feel.label}
+              </button>
+            );
+          })}
         </div>
+        {current ? (
+          <p className="mt-2 text-xs text-muted">
+            Noted as {FEELS.find((f) => f.id === current)?.label}. {c.name} can see it. It stays on this phone.
+          </p>
+        ) : null}
       </section>
 
       <section className="mt-4">
@@ -224,13 +247,110 @@ function CompanionPage() {
   );
 }
 
-function NovaPointsTile({ points, goal }: { points: number; goal: number }) {
-  const pct = goal > 0 ? Math.min(100, Math.round((points / goal) * 100)) : 0;
+function purpleSpec(input: {
+  id: CompanionId;
+  points: number;
+  goal: number;
+  paused: boolean;
+  events: number;
+  place?: string;
+  spent: number;
+  budget: number;
+}) {
+  const pointsPct = input.goal > 0 ? Math.min(100, Math.round((input.points / input.goal) * 100)) : 0;
+  const left = Math.max(0, input.budget - input.spent);
+  const moneyPct = input.budget > 0 ? Math.max(0, Math.min(100, Math.round((left / input.budget) * 100))) : 0;
+  if (input.id === "stan") {
+    return {
+      icon: Shield,
+      title: "The call",
+      kicker: "Right now",
+      value: input.paused ? "Paused" : "On",
+      line: "You decide. Stan does not.",
+      pct: input.paused ? 40 : 100,
+      ring: "sharing",
+      side: "Choice",
+      sideValue: "Yours",
+      foot: input.paused ? "Hidden" : "In view",
+    };
+  }
+  if (input.id === "pulse") {
+    const pct = input.events ? Math.min(100, 40 + input.events * 15) : 36;
+    return {
+      icon: CalendarDays,
+      title: "The day",
+      kicker: "Today",
+      value: String(input.events),
+      line: "Sport, pickup, dinner. One plan.",
+      pct,
+      ring: "on the day",
+      side: "Plan",
+      sideValue: input.events ? "Set" : "Open",
+      foot: `${input.events} on it`,
+    };
+  }
+  if (input.id === "scout") {
+    return {
+      icon: MapPinned,
+      title: "The trip",
+      kicker: "Logged",
+      value: input.place ? "Set" : "Open",
+      line: input.place ?? "Name a place. Maps keeps the route.",
+      pct: input.place ? 84 : 36,
+      ring: "of the trip",
+      side: "Maps",
+      sideValue: "Ready",
+      foot: input.place ? "Handed on" : "Waiting",
+    };
+  }
+  if (input.id === "moneybags") {
+    return {
+      icon: Wallet,
+      title: "The week",
+      kicker: "AUD · private",
+      value: `$${left}`,
+      line: "Left in the week. Nobody is singled out.",
+      pct: moneyPct,
+      ring: "still left",
+      side: "Plan",
+      sideValue: `$${input.budget}`,
+      foot: `$${input.spent} spent`,
+    };
+  }
+  return {
+    icon: Users,
+    title: "Family Points",
+    kicker: "This week",
+    value: input.points.toLocaleString("en-AU"),
+    line: "Keep lifting each other up!",
+    pct: pointsPct,
+    ring: "of weekly goal",
+    side: "Goal",
+    sideValue: input.goal.toLocaleString("en-AU"),
+    foot: `${input.points.toLocaleString("en-AU")} / ${input.goal.toLocaleString("en-AU")}`,
+  };
+}
+
+function PurpleBox({
+  spec,
+}: {
+  spec: {
+    icon: LucideIcon;
+    title: string;
+    kicker: string;
+    value: string;
+    line: string;
+    pct: number;
+    ring: string;
+    side: string;
+    sideValue: string;
+    foot: string;
+  };
+}) {
+  const Icon = spec.icon;
   const r = 32;
   const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ;
-  const shown = points.toLocaleString("en-AU");
-  const goalShown = goal.toLocaleString("en-AU");
+  const dash = (spec.pct / 100) * circ;
 
   return (
     <section
@@ -252,19 +372,19 @@ function NovaPointsTile({ points, goal }: { points: number; goal: number }) {
               background: "linear-gradient(160deg, #ddd6fe 0%, #7c3aed 42%, #4c1d95 100%)",
             }}
           >
-            <Users className="size-6" />
+            <Icon className="size-6" />
           </div>
         </div>
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1 text-[13px] font-semibold">
-            Family Points <Sparkles className="size-3 text-gold" />
+            {spec.title} <Sparkles className="size-3 text-gold" />
           </p>
-          <p className="text-[10px] text-white/70">This week</p>
+          <p className="text-[10px] text-white/70">{spec.kicker}</p>
           <p className="flex items-center gap-1 text-[28px] leading-none font-bold tracking-tight">
-            {shown}
+            {spec.value}
             <Sparkles className="size-3.5 text-gold" />
           </p>
-          <p className="mt-1 text-[10px] text-white/80">Keep lifting each other up!</p>
+          <p className="mt-1 line-clamp-2 text-[10px] text-white/80">{spec.line}</p>
         </div>
         <div className="h-16 w-px shrink-0 bg-white/20" />
         <div className="flex shrink-0 items-center gap-1.5">
@@ -283,19 +403,17 @@ function NovaPointsTile({ points, goal }: { points: number; goal: number }) {
               />
             </svg>
             <div className="absolute text-center">
-              <p className="text-base leading-none font-bold">{pct}%</p>
-              <p className="mt-0.5 text-[7px] leading-tight text-white/70">of weekly goal</p>
+              <p className="text-base leading-none font-bold">{spec.pct}%</p>
+              <p className="mt-0.5 text-[7px] leading-tight text-white/70">{spec.ring}</p>
             </div>
           </div>
           <div className="w-[68px]">
-            <p className="text-[10px] text-white/70">Goal</p>
-            <p className="text-base leading-none font-bold">{goalShown}</p>
+            <p className="text-[10px] text-white/70">{spec.side}</p>
+            <p className="text-base leading-none font-bold">{spec.sideValue}</p>
             <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/20">
-              <div className="h-full rounded-full bg-[#c4b5fd]" style={{ width: `${pct}%` }} />
+              <div className="h-full rounded-full bg-[#c4b5fd]" style={{ width: `${spec.pct}%` }} />
             </div>
-            <p className="mt-1 text-[8px] text-white/70">
-              {shown} / {goalShown}
-            </p>
+            <p className="mt-1 text-[8px] text-white/70">{spec.foot}</p>
           </div>
         </div>
       </div>

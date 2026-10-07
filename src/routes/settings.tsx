@@ -7,6 +7,7 @@ import { AVATARS, avatarSrc, resizePhoto } from "@/lib/avatars";
 import { MEMBERS } from "@/lib/family";
 import { usePeople } from "@/lib/people";
 import { PLAN_LABEL } from "@/lib/plans";
+import { LOOKS } from "@/lib/looks";
 import { useGuardian } from "@/lib/store";
 
 export const Route = createFileRoute("/settings")({ component: SettingsPage });
@@ -18,6 +19,8 @@ function SettingsPage() {
   const setYouPhoto = useGuardian((s) => s.setYouPhoto);
   const setAvatarId = useGuardian((s) => s.setAvatarId);
   const mapsKey = useGuardian((s) => s.mapsKey);
+  const look = useGuardian((s) => s.look) || "pink";
+  const setLook = useGuardian((s) => s.setLook);
   const setMapsKey = useGuardian((s) => s.setMapsKey);
   const displayName = useGuardian((s) => s.displayName) || "Michael";
   const username = useGuardian((s) => s.username) || "michael";
@@ -45,6 +48,30 @@ function SettingsPage() {
       <p className="text-[11px] font-semibold tracking-[0.16em] text-violet uppercase">Account</p>
       <h1 className="mt-1 text-2xl font-semibold">Settings</h1>
       <p className="mt-1 text-sm text-muted">Signed in on this device as @{username}</p>
+
+      <section className="mt-5 rounded-3xl bg-panel p-4 shadow-[var(--shadow-border)]">
+        <h2 className="font-semibold">Colour</h2>
+        <p className="mt-1 text-sm text-muted">The whole app follows this. Pink is the original.</p>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {LOOKS.map((item) => {
+            const on = look === item.id;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setLook(item.id)}
+                className={`flex items-center gap-3 rounded-2xl px-3 py-3 text-left ${on ? "bg-ink-2 ring-2 ring-fg" : "bg-ink-2"}`}
+              >
+                <span
+                  className="size-9 shrink-0 rounded-full"
+                  style={{ background: `linear-gradient(135deg, ${item.wash}, ${item.accent})` }}
+                />
+                <span className="text-sm font-semibold">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="mt-5 rounded-3xl bg-panel p-4 shadow-[var(--shadow-border)]">
         <h2 className="font-semibold">Your name</h2>
