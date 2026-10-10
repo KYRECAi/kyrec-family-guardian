@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AccountRouteImport } from './routes/account'
 import { Route as AlertsRouteImport } from './routes/alerts'
 import { Route as BudgetRouteImport } from './routes/budget'
 import { Route as CompanionsRouteImport } from './routes/companions'
@@ -29,15 +30,22 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StanRouteImport } from './routes/stan'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as CompanionsIndexRouteImport } from './routes/companions.index'
 import { Route as CompanionsIdRouteImport } from './routes/companions.$id'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
 import { Route as GamesIdRouteImport } from './routes/games.$id'
 import { Route as TalkIdRouteImport } from './routes/talk.$id'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AccountRoute = AccountRouteImport.update({
+  id: '/account',
+  path: '/account',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AlertsRoute = AlertsRouteImport.update({
@@ -135,6 +143,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanionsIndexRoute = CompanionsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -160,9 +173,15 @@ const TalkIdRoute = TalkIdRouteImport.update({
   path: '/talk/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/alerts': typeof AlertsRoute
   '/budget': typeof BudgetRoute
   '/companions': typeof CompanionsRouteWithChildren
@@ -182,14 +201,17 @@ export interface FileRoutesByFullPath {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
   '/companions/': typeof CompanionsIndexRoute
   '/games/': typeof GamesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/alerts': typeof AlertsRoute
   '/budget': typeof BudgetRoute
   '/drive': typeof DriveRoute
@@ -207,15 +229,18 @@ export interface FileRoutesByTo {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
   '/companions': typeof CompanionsIndexRoute
   '/games': typeof GamesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/account': typeof AccountRoute
   '/alerts': typeof AlertsRoute
   '/budget': typeof BudgetRoute
   '/companions': typeof CompanionsRouteWithChildren
@@ -235,16 +260,19 @@ export interface FileRoutesById {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
   '/companions/': typeof CompanionsIndexRoute
   '/games/': typeof GamesIndexRoute
+  '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/account'
     | '/alerts'
     | '/budget'
     | '/companions'
@@ -264,14 +292,17 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/api/health'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
     | '/companions/'
     | '/games/'
+    | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/account'
     | '/alerts'
     | '/budget'
     | '/drive'
@@ -289,14 +320,17 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/api/health'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
     | '/companions'
     | '/games'
+    | '/api/auth/$'
   id:
     | '__root__'
     | '/'
+    | '/account'
     | '/alerts'
     | '/budget'
     | '/companions'
@@ -316,15 +350,18 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/api/health'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
     | '/companions/'
     | '/games/'
+    | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AccountRoute: typeof AccountRoute
   AlertsRoute: typeof AlertsRoute
   BudgetRoute: typeof BudgetRoute
   CompanionsRoute: typeof CompanionsRouteWithChildren
@@ -344,7 +381,9 @@ export interface RootRouteChildren {
   StanRoute: typeof StanRoute
   StatsRoute: typeof StatsRoute
   TermsRoute: typeof TermsRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   TalkIdRoute: typeof TalkIdRoute
+  ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -354,6 +393,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/account': {
+      id: '/account'
+      path: '/account'
+      fullPath: '/account'
+      preLoaderRoute: typeof AccountRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/alerts': {
@@ -489,6 +535,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companions/': {
       id: '/companions/'
       path: '/'
@@ -524,6 +577,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TalkIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -555,6 +615,7 @@ const GamesRouteWithChildren = GamesRoute._addFileChildren(GamesRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AccountRoute: AccountRoute,
   AlertsRoute: AlertsRoute,
   BudgetRoute: BudgetRoute,
   CompanionsRoute: CompanionsRouteWithChildren,
@@ -574,7 +635,9 @@ const rootRouteChildren: RootRouteChildren = {
   StanRoute: StanRoute,
   StatsRoute: StatsRoute,
   TermsRoute: TermsRoute,
+  ApiHealthRoute: ApiHealthRoute,
   TalkIdRoute: TalkIdRoute,
+  ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

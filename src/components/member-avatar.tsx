@@ -11,7 +11,10 @@ export function MemberAvatar({
   src,
   className,
 }: {
-  member: Pick<Member, "name" | "avatar" | "accent" | "short" | "initial"> & { id?: string; you?: boolean };
+  member: Pick<Member, "name" | "avatar" | "accent" | "short" | "initial"> & {
+    id?: string;
+    you?: boolean;
+  };
   size?: number;
   ring?: boolean;
   paused?: boolean;
@@ -20,13 +23,16 @@ export function MemberAvatar({
 }) {
   const youPhoto = useGuardian((s) => s.youPhoto);
   const avatarId = useGuardian((s) => s.avatarId);
-  const isYou = member.you || member.id === "michael";
+  const isYou = Boolean(member.you);
   const yours = isYou ? youPhoto || (avatarId ? avatarSrc(avatarId) : null) : null;
   const initial = member.initial ?? member.short.slice(0, 1);
   const photo = src || yours || member.avatar;
   return (
     <span
-      className={cn("relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-paper", className)}
+      className={cn(
+        "relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-paper",
+        className,
+      )}
       style={{
         width: size,
         height: size,
@@ -37,7 +43,13 @@ export function MemberAvatar({
       }}
     >
       {photo ? (
-        <img src={photo} alt={member.name} width={size} height={size} className="size-full object-cover" />
+        <img
+          src={photo}
+          alt={member.name}
+          width={size}
+          height={size}
+          className="size-full object-cover"
+        />
       ) : (
         initial
       )}

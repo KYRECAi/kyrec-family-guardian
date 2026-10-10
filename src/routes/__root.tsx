@@ -1,7 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
-import { AppShell } from "@/components/app-shell";
+import { FamilyAccess } from "@/components/family-access";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "KYREC Family Guardian";
@@ -14,7 +14,8 @@ export const Route = createRootRoute({
       { title: APP_NAME },
       {
         name: "description",
-        content: "Family safety, shared by choice. Map, drive safety, alerts, routines and family points — with you in control.",
+        content:
+          "Family safety, shared by choice. Map, drive safety, alerts, routines and family points — with you in control.",
       },
       { name: "theme-color", content: "#050318" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
@@ -36,9 +37,9 @@ export const Route = createRootRoute({
       <body className="antialiased">
         <PreviewHostBridge />
         <AuthProvider>
-          <AppShell>
+          <FamilyAccess>
             <Outlet />
-          </AppShell>
+          </FamilyAccess>
         </AuthProvider>
         <Scripts />
       </body>

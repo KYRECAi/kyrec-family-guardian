@@ -1,24 +1,12 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import {
-  Bell,
-  Bot,
-  Users,
-  Ellipsis,
-  Gamepad2,
-  House,
-  MapPinned,
-  Pause,
-  Play,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Link, useRouter, useRouterState } from "@tanstack/react-router";
+import { Bell, Bot, Users, Ellipsis, Gamepad2, House, MapPinned, Sparkles, X } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
-import { Toaster, toast } from "sonner";
+import { Toaster } from "sonner";
 import { MemberAvatar } from "@/components/member-avatar";
 import { Splash } from "@/components/splash";
 import { Badge } from "@/components/ui/badge";
-import { MEMBERS } from "@/lib/family";
+import { usePeople } from "@/lib/people";
 import { avatarSrc } from "@/lib/avatars";
 import { useGuardian } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -27,7 +15,13 @@ const TABS = [
   { to: "/", label: "Home", icon: House, tone: "bg-pink text-paper", idle: "text-pink" },
   { to: "/map", label: "Map", icon: MapPinned, tone: "bg-orange text-paper", idle: "text-orange" },
   { to: "/family", label: "Family", icon: Users, tone: "bg-mint text-paper", idle: "text-mint" },
-  { to: "/companions", label: "Companions", icon: Bot, tone: "bg-violet text-paper", idle: "text-violet" },
+  {
+    to: "/companions",
+    label: "Companions",
+    icon: Bot,
+    tone: "bg-violet text-paper",
+    idle: "text-violet",
+  },
   { to: "/games", label: "Games", icon: Gamepad2, tone: "bg-gold text-fg", idle: "text-orange" },
 ] as const;
 
@@ -47,11 +41,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isGame = pathname.startsWith("/games/") && pathname !== "/games";
   const immersive = pathname === "/map";
   const hideHeader = pathname === "/" || pathname === "/plan" || immersive;
-  const paused = useGuardian((s) => s.locationPaused);
-  const togglePaused = useGuardian((s) => s.togglePaused);
+  const router = useRouter();
   const [more, setMore] = useState(false);
   const [boot, setBoot] = useState(true);
-  const you = MEMBERS[0]!;
+  const { people } = usePeople();
+  const you = people.find((person) => person.you)!;
   const displayName = useGuardian((s) => s.displayName) || "You";
   const username = useGuardian((s) => s.username);
   const youPhoto = useGuardian((s) => s.youPhoto);
@@ -60,20 +54,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const look = useGuardian((s) => s.look) || "pink";
 
   useEffect(() => {
-    void useGuardian.persist.rehydrate();
-  }, []);
-
-  useEffect(() => {
     document.documentElement.dataset.look = look;
   }, [look]);
 
   function onPause() {
-    togglePaused();
-    toast(paused ? "Location sharing resumed" : "Location sharing paused", {
-      description: paused
-        ? "Chosen locations are visible to this household again."
-        : "Live locations are hidden until you turn sharing back on.",
-    });
+    void router.navigate({ to: "/map" });
   }
 
   if (isGame) {
@@ -91,7 +76,12 @@ export function AppShell({ children }: { children: ReactNode }) {
     <>
       {boot ? <Splash onDone={() => setBoot(false)} /> : null}
       <div className="kyrec-atmosphere" aria-hidden />
-      <div className={cn("relative z-10", immersive ? "min-h-dvh" : "mx-auto flex min-h-dvh max-w-[1240px]")}>
+      <div
+        className={cn(
+          "relative z-10",
+          immersive ? "min-h-dvh" : "mx-auto flex min-h-dvh max-w-[1240px]",
+        )}
+      >
         <aside
           className={cn(
             "z-30 hidden flex-col lg:flex",
@@ -101,7 +91,9 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         >
           <Brand compact={immersive} />
-          <nav className={cn("flex flex-1 flex-col gap-1", immersive ? "mt-6 items-center" : "mt-8")}>
+          <nav
+            className={cn("flex flex-1 flex-col gap-1", immersive ? "mt-6 items-center" : "mt-8")}
+          >
             {TABS.map((tab) => (
               <NavLink
                 key={tab.to}
@@ -122,7 +114,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                     to={item.to}
                     className={cn(
                       "rounded-lg px-3 py-2.5 text-sm text-muted transition-colors hover:bg-black/5 hover:text-fg",
-                      (pathname === item.to || pathname.startsWith(`${item.to}/`)) && "bg-black/5 text-fg",
+                      (pathname === item.to || pathname.startsWith(`${item.to}/`)) &&
+                        "bg-black/5 text-fg",
                     )}
                   >
                     {item.label}
@@ -149,12 +142,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                   ? "size-11 text-fg hover:bg-black/5"
                   : "w-full justify-between bg-panel px-3 py-3 text-left shadow-[var(--shadow-border)]",
               )}
-              aria-label={paused ? "Resume sharing" : "Pause sharing"}
+              aria-label="Location controls"
             >
-              {immersive ? null : (
-                <span className="text-sm font-medium">{paused ? "Sharing paused" : "Pause sharing"}</span>
-              )}
-              {paused ? <Play className="size-4 text-green" /> : <Pause className="size-4 text-muted" />}
+              {immersive ? null : <span className="text-sm font-medium">Location controls</span>}
+              <MapPinned className="size-4 text-muted" />
             </button>
             {immersive ? (
               <Link to="/settings">
@@ -186,14 +177,21 @@ export function AppShell({ children }: { children: ReactNode }) {
               </div>
               <p className="hidden text-sm text-muted lg:block">Family safety, shared by choice</p>
               <div className="flex items-center gap-2">
-                <Link to="/alerts" className="relative grid size-11 place-items-center rounded-lg hover:bg-black/5">
+                <Link
+                  to="/alerts"
+                  className="relative grid size-11 place-items-center rounded-lg hover:bg-black/5"
+                >
                   <Bell className="size-5 text-fg" />
                   <span className="absolute top-2.5 right-2.5 size-1.5 rounded-full bg-blue" />
                 </Link>
                 <Link to="/settings" className="flex items-center gap-2">
                   <span className="hidden text-right sm:block">
-                    <span className="block max-w-28 truncate text-sm font-medium">{displayName}</span>
-                    {username ? <span className="block text-[11px] text-muted">@{username}</span> : null}
+                    <span className="block max-w-28 truncate text-sm font-medium">
+                      {displayName}
+                    </span>
+                    {username ? (
+                      <span className="block text-[11px] text-muted">@{username}</span>
+                    ) : null}
                   </span>
                   <MemberAvatar member={you} src={face} size={36} />
                 </Link>
@@ -201,12 +199,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </header>
           )}
 
-          <main
-            className={cn(
-              "flex-1",
-              immersive ? "p-0" : "px-4 pb-28 lg:px-8 lg:pb-10",
-            )}
-          >
+          <main className={cn("flex-1", immersive ? "p-0" : "px-4 pb-28 lg:px-8 lg:pb-10")}>
             {children}
           </main>
         </div>
@@ -226,7 +219,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   active ? tab.idle : "text-subtle",
                 )}
               >
-                <span className={cn("grid size-8 place-items-center rounded-xl", active && tab.tone)}>
+                <span
+                  className={cn("grid size-8 place-items-center rounded-xl", active && tab.tone)}
+                >
                   <Icon className="size-5" />
                 </span>
                 {tab.label}
@@ -249,30 +244,49 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {more ? (
         <div className="fixed inset-0 z-40">
-          <button type="button" className="absolute inset-0 bg-navy/25" aria-label="Close" onClick={() => setMore(false)} />
+          <button
+            type="button"
+            className="absolute inset-0 bg-navy/25"
+            aria-label="Close"
+            onClick={() => setMore(false)}
+          />
           <div className="absolute inset-x-0 bottom-0 rounded-t-2xl bg-panel-2 p-5 pb-10 shadow-[var(--shadow-lift)] lg:inset-auto lg:top-1/2 lg:left-24 lg:bottom-auto lg:w-[360px] lg:-translate-y-1/2 lg:rounded-2xl">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-base font-semibold">Household</h2>
-              <button type="button" className="grid size-11 place-items-center" onClick={() => setMore(false)}>
+              <button
+                type="button"
+                className="grid size-11 place-items-center"
+                onClick={() => setMore(false)}
+              >
                 <X className="size-5" />
               </button>
             </div>
             <div className="grid gap-2">
               {MORE.map((item, i) => {
-                const tone = ["text-pink", "text-violet", "text-orange", "text-mint", "text-blue", "text-gold", "text-green", "text-magenta"][i] ?? "text-violet";
+                const tone =
+                  [
+                    "text-pink",
+                    "text-violet",
+                    "text-orange",
+                    "text-mint",
+                    "text-blue",
+                    "text-gold",
+                    "text-green",
+                    "text-magenta",
+                  ][i] ?? "text-violet";
                 return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  onClick={() => setMore(false)}
-                  className="flex items-center justify-between rounded-xl bg-panel px-4 py-3 shadow-[var(--shadow-border)]"
-                >
-                  <span>
-                    <span className="block text-sm font-medium">{item.label}</span>
-                    <span className="text-xs text-muted">{item.desc}</span>
-                  </span>
-                  <Sparkles className={cn("size-4", tone)} />
-                </Link>
+                  <Link
+                    key={item.to}
+                    to={item.to}
+                    onClick={() => setMore(false)}
+                    className="flex items-center justify-between rounded-xl bg-panel px-4 py-3 shadow-[var(--shadow-border)]"
+                  >
+                    <span>
+                      <span className="block text-sm font-medium">{item.label}</span>
+                      <span className="text-xs text-muted">{item.desc}</span>
+                    </span>
+                    <Sparkles className={cn("size-4", tone)} />
+                  </Link>
                 );
               })}
             </div>
@@ -297,7 +311,9 @@ function Brand({ compact = false }: { compact?: boolean }) {
     <Link to="/" className="flex items-center gap-2.5">
       <img src="/kyrec-logo.png" alt="KYREC" className="h-7 w-auto brightness-0" />
       <span className="flex flex-col leading-tight">
-        <span className="text-[11px] font-medium tracking-[0.14em] text-muted uppercase">Family Guardian</span>
+        <span className="text-[11px] font-medium tracking-[0.14em] text-muted uppercase">
+          Family Guardian
+        </span>
         <Badge tone="blue" className="mt-0.5 w-fit px-1.5 py-0 text-[10px]">
           In development
         </Badge>
@@ -343,10 +359,17 @@ function NavLink({
       to={to}
       className={cn(
         "flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-        active ? "bg-white text-fg shadow-[var(--shadow-border)]" : "text-muted hover:bg-white/70 hover:text-fg",
+        active
+          ? "bg-white text-fg shadow-[var(--shadow-border)]"
+          : "text-muted hover:bg-white/70 hover:text-fg",
       )}
     >
-      <span className={cn("grid size-7 place-items-center rounded-lg", active ? tone : "bg-white text-subtle")}>
+      <span
+        className={cn(
+          "grid size-7 place-items-center rounded-lg",
+          active ? tone : "bg-white text-subtle",
+        )}
+      >
         <Icon className="size-4" />
       </span>
       <span className={active ? idle : undefined}>{label}</span>

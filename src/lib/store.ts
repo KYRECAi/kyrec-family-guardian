@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { createJSONStorage, persist } from "zustand/middleware";
 import { HOUSEHOLD, type MemberId } from "@/lib/family";
 import type { PlanId } from "@/lib/plans";
 import { isLook, type LookId } from "@/lib/looks";
@@ -43,7 +43,13 @@ type State = {
   rhythm: Record<string, boolean>;
   chats: Record<string, { role: "user" | "them"; text: string }[]>;
   meals: { id: string; title: string }[];
-  groceries: { id: string; item: string; by: string | null; from: string | null; snatchedBy?: string | null }[];
+  groceries: {
+    id: string;
+    item: string;
+    by: string | null;
+    from: string | null;
+    snatchedBy?: string | null;
+  }[];
   regulars: string[];
   shopSeed: string;
   snatchOn: boolean;
@@ -127,8 +133,8 @@ type State = {
 };
 
 const defaults = {
-  locationPaused: false,
-  sharing: { michael: true, kelly: true, paige: true, chelsea: true, madison: true } as Record<MemberId, boolean>,
+  locationPaused: true,
+  sharing: {} as Record<MemberId, boolean>,
   alertPrefs: {
     arrival: true,
     departure: true,
@@ -138,13 +144,16 @@ const defaults = {
     quietHours: false,
     zoneOnly: true,
   },
-  alertPeople: { michael: true, kelly: true, paige: true, chelsea: true, madison: true } as Record<MemberId, boolean>,
+  alertPeople: { michael: true, kelly: true, paige: true, chelsea: true, madison: true } as Record<
+    MemberId,
+    boolean
+  >,
   driveInsights: { score: true, trips: true, speed: true, phone: true },
   readAlertIds: [] as string[],
   doneRoutineIds: [] as string[],
-  claimedHabits: ["h1", "h2"] as string[],
-  points: HOUSEHOLD.points,
-  budgetSpent: HOUSEHOLD.budgetSpent,
+  claimedHabits: [] as string[],
+  points: 0,
+  budgetSpent: 0,
   gameBest: {} as Record<string, number>,
   novaMoods: [] as { at: number; mood: Mood; note: string }[],
   plan: "free" as PlanId,
@@ -159,10 +168,7 @@ const defaults = {
   tasks: [] as { id: string; title: string; done: boolean }[],
   rhythm: {} as Record<string, boolean>,
   chats: {} as Record<string, { role: "user" | "them"; text: string }[]>,
-  meals: [
-    { id: "m1", title: "Tuesday · pasta" },
-    { id: "m2", title: "Friday · fish" },
-  ],
+  meals: [] as { id: string; title: string }[],
   groceries: [] as { id: string; item: string; by: string | null; from: string | null }[],
   regulars: ["Milk", "Bread", "Eggs", "Coffee"],
   shopSeed: "blank",
@@ -171,18 +177,16 @@ const defaults = {
   itemBuys: {} as Record<string, number[]>,
   itemEvery: {} as Record<string, number>,
   itemSnooze: {} as Record<string, number>,
-  longDay: true,
+  longDay: false,
   scoutLogs: [] as { id: string; place: string; at: number }[],
-  goals: [
-    { id: "goal-team", who: "Kelly", want: "Make the school team", horizon: "This season" },
-  ] as { id: string; who: string; want: string; horizon: string }[],
+  goals: [] as { id: string; who: string; want: string; horizon: string }[],
   seenTips: false,
   visits: 0,
   youPhoto: null as string | null,
   avatarId: null as string | null,
   mapsKey: "",
-  displayName: "Michael",
-  username: "michael",
+  displayName: "You",
+  username: "",
   familyName: "Family",
   nicknames: {} as Record<string, string>,
   guests: [] as { id: string; name: string; nickname: string }[],
@@ -245,9 +249,12 @@ export const useGuardian = create<State>()(
         });
       },
       addMood: (mood, note) =>
-        set({ novaMoods: [{ at: Date.now(), mood, note }, ...(get().novaMoods ?? [])].slice(0, 12) }),
+        set({
+          novaMoods: [{ at: Date.now(), mood, note }, ...(get().novaMoods ?? [])].slice(0, 12),
+        }),
       addStan: (msg) => set({ stanMessages: [...get().stanMessages, msg].slice(-24) }),
-      setPlan: (plan) => set({ plan, subscribedAt: plan === "free" ? get().subscribedAt : Date.now() }),
+      setPlan: (plan) =>
+        set({ plan, subscribedAt: plan === "free" ? get().subscribedAt : Date.now() }),
       toggleScout: () => set({ scoutOn: !get().scoutOn, subscribedAt: Date.now() }),
       subscribe: ({ plan, scout }) =>
         set({
@@ -275,22 +282,32 @@ export const useGuardian = create<State>()(
       addBudgetTx: (categoryId, amount, note) =>
         set({
           budgetTx: [
-            { id: `tx-${Date.now()}`, categoryId, amount: Math.max(0, amount), note, at: Date.now() },
+            {
+              id: `tx-${Date.now()}`,
+              categoryId,
+              amount: Math.max(0, amount),
+              note,
+              at: Date.now(),
+            },
             ...get().budgetTx,
           ],
         }),
       addEvent: (title, date, start, who) =>
         set({
-          events: [
-            ...get().events,
-            { id: `e-${Date.now()}`, title, date, start, who },
-          ].sort((a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start)),
+          events: [...get().events, { id: `e-${Date.now()}`, title, date, start, who }].sort(
+            (a, b) => a.date.localeCompare(b.date) || a.start.localeCompare(b.start),
+          ),
         }),
       removeEvent: (id) => set({ events: get().events.filter((e) => e.id !== id) }),
       addTask: (title) => {
         const name = title.trim();
         if (!name) return;
-        set({ tasks: [...(get().tasks ?? []), { id: `t-${crypto.randomUUID()}`, title: name, done: false }] });
+        set({
+          tasks: [
+            ...(get().tasks ?? []),
+            { id: `t-${crypto.randomUUID()}`, title: name, done: false },
+          ],
+        });
       },
       toggleTask: (id) =>
         set({
@@ -314,7 +331,12 @@ export const useGuardian = create<State>()(
         if (!name) return;
         const list = get().groceries ?? [];
         if (list.some((g) => g.item.trim().toLowerCase() === name.toLowerCase())) return;
-        set({ groceries: [...list, { id: `g-${crypto.randomUUID()}`, item: name, by: null, from: null, snatchedBy: null }] });
+        set({
+          groceries: [
+            ...list,
+            { id: `g-${crypto.randomUUID()}`, item: name, by: null, from: null, snatchedBy: null },
+          ],
+        });
       },
       noteItemUse: (item) => {
         const key = item.trim().toLowerCase();
@@ -428,7 +450,10 @@ export const useGuardian = create<State>()(
           hourCycle: "h23",
         }).format(new Date());
         set({
-          scoutLogs: [{ id: `s-${Date.now()}`, place: name, at: Date.now() }, ...(get().scoutLogs ?? [])].slice(0, 8),
+          scoutLogs: [
+            { id: `s-${Date.now()}`, place: name, at: Date.now() },
+            ...(get().scoutLogs ?? []),
+          ].slice(0, 8),
           events: [
             ...get().events,
             { id: `e-${Date.now()}`, title: `Scout · ${name}`, date, start, who: "Pulse" },
@@ -438,7 +463,9 @@ export const useGuardian = create<State>()(
       addGoal: (who, want, horizon) => {
         const name = want.trim();
         if (!name) return;
-        set({ goals: [...(get().goals ?? []), { id: `goal-${Date.now()}`, who, want: name, horizon }] });
+        set({
+          goals: [...(get().goals ?? []), { id: `goal-${Date.now()}`, who, want: name, horizon }],
+        });
       },
       removeGoal: (id) => set({ goals: (get().goals ?? []).filter((g) => g.id !== id) }),
       dismissTips: () => set({ seenTips: true }),
@@ -468,7 +495,14 @@ export const useGuardian = create<State>()(
         const who = name.trim();
         if (!who) return;
         set({
-          guests: [...(get().guests ?? []), { id: `guest-${Date.now()}`, name: who.slice(0, 40), nickname: nickname.trim().slice(0, 24) }],
+          guests: [
+            ...(get().guests ?? []),
+            {
+              id: `guest-${Date.now()}`,
+              name: who.slice(0, 40),
+              nickname: nickname.trim().slice(0, 24),
+            },
+          ],
         });
       },
       removeGuest: (id) => set({ guests: (get().guests ?? []).filter((g) => g.id !== id) }),
@@ -478,6 +512,30 @@ export const useGuardian = create<State>()(
       setSnatchOn: (on) => set({ snatchOn: on }),
       resetDemo: () => set({ ...defaults }),
     }),
-    { name: "kyrec-family-guardian-v6", skipHydration: true },
+    {
+      name: "kyrec-family-guardian-v7-unbound",
+      skipHydration: true,
+      partialize: (state) => ({
+        ...state,
+        chats: {},
+        stanMessages: [],
+        novaMoods: [],
+        mapsKey: "",
+        groceries: [],
+        itemBuys: {},
+      }),
+    },
   ),
 );
+
+/** Never hydrate one person's private device data into another account. */
+export async function activatePersonalStore(userId: string) {
+  useGuardian.persist.setOptions({ storage: undefined });
+  useGuardian.setState({ ...defaults, chats: {}, stanMessages: [], novaMoods: [] });
+  useGuardian.persist.setOptions({
+    name: `kyrec-family-guardian-v7-${encodeURIComponent(userId)}`,
+    storage: createJSONStorage(() => localStorage),
+  });
+  await useGuardian.persist.rehydrate();
+  useGuardian.setState({ chats: {}, stanMessages: [], novaMoods: [] });
+}

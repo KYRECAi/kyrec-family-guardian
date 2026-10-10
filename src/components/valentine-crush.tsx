@@ -51,7 +51,7 @@ function matches(grid: number[][]) {
 
 function settle(grid: number[][]) {
   let score = 0;
-  let board = grid.map((row) => row.slice());
+  const board = grid.map((row) => row.slice());
   for (let guard = 0; guard < 12; guard++) {
     const hit = matches(board);
     if (!hit.size) break;
