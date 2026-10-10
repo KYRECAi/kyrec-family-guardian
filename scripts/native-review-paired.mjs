@@ -80,9 +80,34 @@ try {
       await new Promise((r) => setTimeout(r, 100));
     }
   }
-  async function request(action, data) {
+  async function login(loginEmail = email, loginPassword = password) {
+    const response = await auth.api.signInEmail({
+      body: { email: loginEmail, password: loginPassword },
+      headers,
+      asResponse: true,
+    });
+    assert.equal(response.status, 200);
+    return new Headers({
+      cookie: response.headers
+        .getSetCookie()
+        .map((v) => v.split(";")[0])
+        .join("; "),
+    });
+  }
+  const deviceTwo = await login();
+  assert.notEqual(deviceTwo.get("cookie"), sessionHeaders.get("cookie"));
+  const otherEmail = "native-other@example.test";
+  await auth.api.signUpEmail({
+    body: { email: otherEmail, password, name: "Other synthetic adult" },
+    headers,
+  });
+  await auth.handler(
+    new Request(messages.find((m) => m.address === otherEmail && m.purpose === "verify").url),
+  );
+  const otherSession = await login(otherEmail);
+  async function request(action, data, session = sessionHeaders) {
     const current = await auth.api.getSession({
-      headers: sessionHeaders,
+      headers: session,
       query: { disableCookieCache: true },
     });
     assert.ok(current?.user?.emailVerified, "Fresh confirmed session required");
@@ -98,7 +123,8 @@ try {
       granted: true,
       notice_version: "guardian-native-access-v1",
     });
-  const rendered = await request("results", base);
+  assert.equal((await request("status", base, deviceTwo)).choices.presentation.granted, true);
+  const rendered = await request("results", base, deviceTwo);
   assert.equal(rendered.results.length, 1);
   const feedback = {
     ...base,
@@ -113,12 +139,59 @@ try {
     granted: false,
     notice_version: "guardian-native-access-v1",
   });
-  await assert.rejects(request("feedback", feedback));
+  await assert.rejects(request("feedback", feedback, deviceTwo));
+  await request("consent", {
+    ...base,
+    purpose: "presentation",
+    granted: false,
+    notice_version: "guardian-native-access-v1",
+  });
+  await assert.rejects(request("results", base, deviceTwo));
+  assert.equal((await request("status", base, deviceTwo)).choices.presentation.granted, false);
+  for (const action of ["status", "results"])
+    await assert.rejects(request(action, base, otherSession));
+  await assert.rejects(
+    request(
+      "consent",
+      {
+        ...base,
+        purpose: "presentation",
+        granted: true,
+        notice_version: "guardian-native-access-v1",
+      },
+      otherSession,
+    ),
+  );
+  await assert.rejects(request("feedback", feedback, otherSession));
+  await request("consent", {
+    ...base,
+    purpose: "presentation",
+    granted: true,
+    notice_version: "guardian-native-access-v1",
+  });
+  assert.equal((await request("results", base, deviceTwo)).results.length, 1);
+  await auth.api.requestPasswordReset({
+    body: { email, redirectTo: "http://localhost:8191/account" },
+    headers,
+  });
+  const reset = messages.find((m) => m.purpose === "reset" && m.address === email);
+  const redirect = await auth.handler(new Request(reset.url));
+  const token = new URL(redirect.headers.get("location")).searchParams.get("token");
+  await auth.api.resetPassword({
+    body: { token, newPassword: "synthetic-new-password-for-local-test" },
+    headers,
+  });
+  await assert.rejects(request("results", base));
+  await assert.rejects(request("results", base, deviceTwo));
+  const fresh = await login(email, "synthetic-new-password-for-local-test");
+  assert.equal((await request("results", base, fresh)).results.length, 1);
+  await auth.api.signOut({ headers: fresh });
+  await assert.rejects(request("results", base, fresh));
   await assert.rejects(nativeReviewRequest("other-user", "results", base));
   await auth.api.signOut({ headers: sessionHeaders });
   await assert.rejects(request("results", base));
   console.log(
-    "Paired local PASS: confirmed individual account, fresh session, real Core HTTP consent/render/feedback/retry/revoke, wrong user and sign-out denial. No real email or external model. BFF wrappers/browser deployment remain separately tested.",
+    "Paired local PASS: two independent confirmed-account sessions; cross-session viewing/feedback withdrawal; second verified account denied status/results/consent/feedback; password reset invalidates both sessions; new login and sign-out; real Core HTTP and stable retry. Synthetic only. These are session clients, not physical devices or deployed browser-to-BFF acceptance.",
   );
 } finally {
   child?.kill("SIGTERM");
