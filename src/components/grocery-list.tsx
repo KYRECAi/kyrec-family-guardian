@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useHousehold } from "@/lib/household-context";
 import { MealChoices } from "./meal-choices";
-import { changeSharedShop, readShopDecisions, type ShopChange } from "@/lib/shared-household";
+import { readShopDecisions, type ShopChange } from "@/lib/shared-household";
 
 type Decision = Awaited<ReturnType<typeof readShopDecisions>>["decisions"][number];
 const PACE = [
@@ -12,7 +12,7 @@ const PACE = [
 ] as const;
 
 export function GroceryList() {
-  const { snapshot, receive, refresh } = useHousehold();
+  const { snapshot, receive, refresh, change: mutate } = useHousehold();
   const [item, setItem] = useState("");
   const [ticked, setTicked] = useState<Record<string, boolean>>({});
   const [pending, setPending] = useState(false);
@@ -55,9 +55,7 @@ export function GroceryList() {
     setPending(true);
     setError(null);
     try {
-      const fresh = await changeSharedShop({
-        data: { ...input, household, operation: crypto.randomUUID() } as ShopChange,
-      });
+      const fresh = await mutate({ ...input, household });
       receive(fresh);
       return true;
     } catch {
@@ -227,7 +225,7 @@ export function GroceryList() {
                   >
                     <span className="block truncate text-base">{line.name}</span>
                     <span className="block text-[11px] font-medium text-violet/80">
-                      15 family points
+                      Shared shopping item
                     </span>
                   </button>
                   {snapshot.snatch_on ? (

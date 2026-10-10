@@ -62,8 +62,8 @@ export function GoogleFamilyMap({
         const library = await maps.importLibrary("marker");
         if (!active || !root.current) return;
         map.current = new maps.Map(root.current, {
-          center: { lat: -31.95, lng: 115.84 },
-          zoom: 12,
+          center: { lat: -32.13195, lng: 115.91243 },
+          zoom: 15,
           mapId,
           disableDefaultUI: true,
           zoomControl: true,
