@@ -497,3 +497,55 @@ html[data-look="orange"] {
   .guardian-load-spark,
   .guardian-load-dots { animation: none; }
 }
+
+.holo-stage {
+  position: relative;
+  height: 17rem;
+  overflow: hidden;
+  border-radius: 46% / 42%;
+  border: 1px solid color-mix(in oklab, var(--color-violet) 60%, transparent);
+  background: #071426;
+  box-shadow:
+    0 0 0 7px color-mix(in oklab, var(--color-blue) 22%, transparent),
+    0 0 36px color-mix(in oklab, var(--color-violet) 50%, transparent),
+    inset 0 0 48px color-mix(in oklab, #8fd4ff 40%, transparent);
+}
+
+.holo-stage .maplibregl-map {
+  min-height: 0;
+  height: 100%;
+  background: #d5e4d8;
+}
+
+.holo-scan {
+  background:
+    radial-gradient(closest-side, transparent 62%, color-mix(in oklab, #7ec8ff 28%, transparent) 100%),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 10px,
+      color-mix(in oklab, #7ec8ff 18%, transparent) 10px 11px
+    );
+}
+
+.pin-label {
+  position: absolute;
+  left: 52px;
+  top: 2px;
+  display: none;
+  min-width: 72px;
+  border-radius: 14px;
+  background: color-mix(in oklab, white 92%, var(--color-panel));
+  padding: 4px 8px 5px;
+  color: #1c2430;
+  line-height: 1.15;
+  box-shadow: 0 8px 18px rgb(18 26 43 / 0.16);
+  pointer-events: none;
+}
+
+.member-pin.is-selected .pin-label {
+  display: grid;
+}
+
+.pin-label b { font-size: 12px; font-weight: 700; }
+.pin-label span { font-size: 10px; font-weight: 500; color: #5c6675; }
+.holo-stage .pin-label { display: none; }
