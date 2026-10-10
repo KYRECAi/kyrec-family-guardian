@@ -1,5 +1,10 @@
 # KYREC Core / Family Guardian integration — 7 October 2026
 
+> Historical preparation record. Current 10 October verification and Core
+> dependency are in `guardian-verification-2026-10-10.md`. Core #48 is merged at
+> `ce703f7b7b2e6a416010ed4a6d8467f144f4282e`; Shared Shop is migration `005`.
+> Old branch, migration and CI figures below describe the 7 October snapshot.
+
 **INTEGRATION**  
 Guardian shared household beta; contract `guardian-shared-household-v1`, policy `shared-shop-cadence-v1`.
 

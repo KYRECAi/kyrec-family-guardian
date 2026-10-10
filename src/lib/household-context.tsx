@@ -3,12 +3,20 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { useCurrentUserState } from "./auth/use-current-user";
-import { readSharedShop, listHouseholds, type SharedShopSnapshot } from "./shared-household";
+import {
+  changeSharedShop,
+  readSharedShop,
+  listHouseholds,
+  type ShopChange,
+  type SharedShopSnapshot,
+} from "./shared-household";
+import { createShopMutations, type ShopMutation } from "./shop-mutation";
 
 type HouseholdContext = {
   snapshot: SharedShopSnapshot | null;
@@ -18,12 +26,19 @@ type HouseholdContext = {
   select: (id: string) => void;
   refresh: () => Promise<void>;
   receive: (snapshot: SharedShopSnapshot) => void;
+  change: (input: ShopMutation) => Promise<SharedShopSnapshot>;
 };
 const Context = createContext<HouseholdContext | null>(null);
 
 export function HouseholdProvider({ children }: { children: ReactNode }) {
   const { user } = useCurrentUserState();
   const userId = user?.id;
+  // The provider survives temporary snapshot failures, so lost replies retain
+  // their receipt when the shopping screen is reopened in this account.
+  const change = useMemo(() => {
+    void userId;
+    return createShopMutations((data) => changeSharedShop({ data: data as ShopChange }));
+  }, [userId]);
   const [households, setHouseholds] = useState<HouseholdContext["households"]>([]);
   const [household, setHousehold] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<SharedShopSnapshot | null>(null);
@@ -91,8 +106,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     setHousehold(id);
     setLoading(true);
   };
+  const renderEpoch = epoch.current;
   const receive = (fresh: SharedShopSnapshot) => {
-    if (fresh.household_id !== household) return;
+    if (renderEpoch !== epoch.current || fresh.household_id !== household) return;
     setSnapshot((current) =>
       current?.household_id === fresh.household_id && current.revision > fresh.revision
         ? current
@@ -100,7 +116,9 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     );
   };
   return (
-    <Context.Provider value={{ snapshot, households, loading, error, select, refresh, receive }}>
+    <Context.Provider
+      value={{ snapshot, households, loading, error, select, refresh, receive, change }}
+    >
       {children}
     </Context.Provider>
   );
