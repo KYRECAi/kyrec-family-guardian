@@ -16,11 +16,12 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/shop-mutation.test.ts && node --experimental-transform-types --test src/lib/auth/family-auth.test.ts src/lib/provider-controls.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/lib/shop-mutation.test.ts && node --experimental-transform-types --test src/lib/auth/family-auth.test.ts src/lib/provider-controls.test.ts && node --experimental-transform-types --test src/lib/native-review.test.ts",
     "lint": "eslint .",
     "format": "prettier --write .",
     "test:browser": "node scripts/family-beta-smoke.mjs",
-    "start": "node scripts/start-production.mjs"
+    "start": "node scripts/start-production.mjs",
+    "test:native:browser": "node scripts/native-review-browser.mjs"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.4",
