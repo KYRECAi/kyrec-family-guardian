@@ -122,6 +122,9 @@ test("denial timeout stale and malformed responses do not become results", async
 test("each public server function uses fresh verified family middleware", async () => {
   const source = await readFile(new URL("./native-review.ts", import.meta.url), "utf8");
   assert.equal((source.match(/createServerFn\(/g) ?? []).length, 4);
-  assert.equal((source.match(/middleware\(\[familyAuthMiddleware\]\)/g) ?? []).length, 4);
+  assert.equal(
+    (source.match(/middleware\(\[privateReviewResponses, familyAuthMiddleware\]\)/g) ?? []).length,
+    4,
+  );
   assert.equal((source.match(/nativeReviewRequest\(context.userId/g) ?? []).length, 4);
 });

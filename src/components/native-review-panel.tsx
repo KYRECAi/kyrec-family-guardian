@@ -78,7 +78,8 @@ export function NativeReviewPanel({ household, api }: { household: string; api: 
       if (alive.current) setPending(null);
     }, "Feedback recorded. No action was approved or carried out.");
   }
-  const button = "min-h-11 rounded-xl border border-white/15 px-4 py-2 text-sm disabled:opacity-50";
+  const button =
+    "min-h-11 rounded-xl border border-line bg-panel px-4 py-2 text-sm text-fg hover:border-violet disabled:opacity-50";
   return (
     <section className="mt-6 rounded-2xl bg-panel p-4" aria-labelledby="native-review-title">
       <h2 id="native-review-title" className="text-lg font-semibold">

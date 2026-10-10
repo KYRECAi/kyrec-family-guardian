@@ -15,12 +15,16 @@ await writeFile(
   '<html><head><meta name="viewport" content="width=device-width,initial-scale=1"></head><body><div id="root"></div><script type="module" src="/main.tsx"></script></body></html>',
 );
 await writeFile(
+  path.join(root, "harness.css"),
+  '@import "../../src/styles.css";\n@source "../../src";\n',
+);
+await writeFile(
   path.join(root, "main.tsx"),
   `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { NativeReviewPanel } from '@/components/native-review-panel';
-import '@/styles.css';
+import './harness.css';
 const household='00000000-0000-4000-8000-000000000001';
 const choices={presentation:{granted:false,expires_at:null},feedback:{granted:false,expires_at:null}};
 const controls=window.controls={fail:false,calls:[],expired:false};
@@ -58,6 +62,11 @@ try {
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto("http://127.0.0.1:" + (mode === "development" ? 8189 : 8190));
       await page.getByRole("heading", { name: "Your personal review" }).waitFor();
+      const refresh = page.getByRole("button", { name: "Refresh personal review" });
+      assert.ok(
+        (await refresh.boundingBox()).height >= 44,
+        "Touch controls must retain app styling",
+      );
       await page.getByRole("button", { name: "Refresh personal review" }).click();
       await page.getByRole("button", { name: "Allow viewing", exact: true }).click();
       await page.getByText("Synthetic result for your review.", { exact: false }).waitFor();
