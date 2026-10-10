@@ -50,6 +50,9 @@ try {
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(error.message));
+    page.on("console", (message) => {
+      if (message.type() === "error") errors.push(message.text());
+    });
     await page.goto(`${base}/account`, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
     await page.getByRole("button", { name: "Create an account", exact: true }).click();
@@ -59,6 +62,10 @@ try {
     await page.getByRole("button", { name: "Send reset link", exact: true }).waitFor();
     await page.getByRole("button", { name: "Back to sign in", exact: true }).click();
     await page.getByRole("heading", { name: "Sign in", exact: true }).waitFor();
+    await page.getByRole("img", { name: "KYREC", exact: true }).evaluate(async (image) => {
+      await image.decode();
+      if (!image.naturalWidth) throw new Error("KYREC logo did not render");
+    });
     assert.equal(
       await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
       false,
