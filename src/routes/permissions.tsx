@@ -40,6 +40,16 @@ function PermissionsPage() {
           Open companions
         </Link>
       </section>
+      <section className="mt-4 rounded-xl bg-panel p-4">
+        <h2 className="font-semibold">Your personal review</h2>
+        <p className="mt-2 text-sm text-muted">
+          Viewing Core results and recording feedback each need your own choice. Family membership
+          does not turn either on.
+        </p>
+        <Link to="/family" className="mt-4 inline-block min-h-11 text-sm text-violet">
+          Open your personal review choices
+        </Link>
+      </section>
       <p className="mt-6 text-xs text-muted">
         In immediate danger in Australia, call{" "}
         <a href="tel:000" className="underline">
