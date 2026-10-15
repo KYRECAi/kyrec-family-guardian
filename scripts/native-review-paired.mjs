@@ -16,8 +16,8 @@ assert.equal(
     cwd: process.env.KYREC_CORE_TEST_ROOT,
     encoding: "utf8",
   }).trim(),
-  "c306f07e47551fc99969fe4fc1cac50821031c9d",
-  "Core checkout must match reviewed source 499eceb1213fec6f601ce77b262f2d9abe54dc84",
+  "c1a3fb09a17c3f5387616f623218ef6927a8d9ff",
+  "Core checkout must match reviewed source f727b65fa1317de51b81b1f765de503e72e023f8",
 );
 execFileSync(
   "git",
