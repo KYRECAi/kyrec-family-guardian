@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { NativeReview } from "@/components/native-review";
 import { useHousehold } from "@/lib/household-context";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { createHouseholdInvite, removeHouseholdMember } from "@/lib/shared-household";
@@ -160,6 +161,12 @@ function FamilyPage() {
         <p role="status" className="mt-4 text-sm">
           {notice}
         </p>
+      ) : null}
+      {snapshot.member_role === "adult" && user?.emailVerified && !user.isDevFallback ? (
+        <NativeReview
+          key={`${user.id}:${snapshot.household_id}`}
+          household={snapshot.household_id}
+        />
       ) : null}
       <Link to="/account" className="mt-6 inline-block min-h-11 text-sm text-violet">
         Your account and sign out
