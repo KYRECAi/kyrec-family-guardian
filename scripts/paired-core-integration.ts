@@ -21,14 +21,14 @@ assert.ok(
   process.env.GUARDIAN_PAIRED_CORE_PYTHON,
   "Set GUARDIAN_PAIRED_CORE_PYTHON to its test Python",
 );
-const reviewedCore = "f727b65fa1317de51b81b1f765de503e72e023f8";
+const reviewedCore = "117032f8cd174f12916f3e56abdfb1b8ea87820e";
 assert.equal(process.env.GUARDIAN_PAIRED_CORE_COMMIT, reviewedCore);
 assert.equal(
   execFileSync("git", ["rev-parse", "HEAD^{tree}"], {
     cwd: process.env.GUARDIAN_PAIRED_CORE_ROOT,
     encoding: "utf8",
   }).trim(),
-  "c1a3fb09a17c3f5387616f623218ef6927a8d9ff",
+  "3649acab91b772a9edf60a50e9abc173b213825f",
   "Core checkout must match the reviewed integration source tree",
 );
 execFileSync("git", ["diff", "--exit-code", "HEAD", "--", "app", "migrations"], {

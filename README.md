@@ -14,14 +14,16 @@ Google Maps uses one app browser key and map ID configured on the server; restri
 that key to the deployed website referrers and Maps JavaScript API. OpenAI and
 Core credentials stay on the server. Individual family members do not enter keys.
 
-This native-review integration is verified against `KYRECAi/kyrec-core` PR #59
-commit `499eceb1213fec6f601ce77b262f2d9abe54dc84`, tree
-`c306f07e47551fc99969fe4fc1cac50821031c9d`. It includes the dependent Core
-PRs #56–58, Shared Shop migration `005` and native access migration `006` after
-unchanged migrations `001`–`004`. Contracts remain
-`guardian-shared-household-v1` and `guardian-native-review-v1`.
-Core master remains `ce703f7b7b2e6a416010ed4a6d8467f144f4282e`; the native
-dependency is still a draft, and this check does not deploy or enable it.
+The current Core staging deployment is commit
+`117032f8cd174f12916f3e56abdfb1b8ea87820e`, tree
+`3649acab91b772a9edf60a50e9abc173b213825f` (PR #67). AWS activation
+completed on 16 October 2026 (Perth), with companion memory enabled and a
+valid deny-all authority registry. The paired runners target this exact source.
+Contracts remain `guardian-shared-household-v1` and `guardian-native-review-v1`;
+Shared Shop migration `005` and native access migration `006` are applied.
+Core activation does not establish a deployed Guardian BFF, account/service
+bindings, retention consent, or real provider configuration.
+See the [Core activation record](https://github.com/KYRECAi/kyrec-core/pull/68).
 Set `KYREC_CORE_EXPECTED_COMMIT` to the exact deployed, reviewed Core commit;
 readiness rejects a different source.
 
@@ -32,7 +34,7 @@ and its Python with Core test dependencies installed:
 ```bash
 GUARDIAN_PAIRED_CORE_ROOT=/path/to/kyrec-core \
 GUARDIAN_PAIRED_CORE_PYTHON=/path/to/core-venv/bin/python \
-GUARDIAN_PAIRED_CORE_COMMIT=499eceb1213fec6f601ce77b262f2d9abe54dc84 \
+GUARDIAN_PAIRED_CORE_COMMIT=117032f8cd174f12916f3e56abdfb1b8ea87820e \
 node --experimental-transform-types scripts/paired-core-integration.ts
 
 KYREC_CORE_TEST_ROOT=/path/to/kyrec-core \
