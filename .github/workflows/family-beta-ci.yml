@@ -93,6 +93,7 @@ jobs:
           GUARDIAN_SMOKE_MODE: production
         run: npm run test:browser
       - name: Build non-root container from this exact source
+        id: release_images
         run: |
           docker build --build-arg GUARDIAN_SOURCE_COMMIT=${{ github.event.pull_request.head.sha || github.sha }} -t guardian-beta:test .
           test "$(docker inspect --format '{{.Config.User}}' guardian-beta:test)" = node
@@ -101,6 +102,32 @@ jobs:
             exit 1
           fi
           grep -Fq 'Guardian startup blocked' /tmp/guardian-startup.log
+      - name: Scan runtime image for release-blocking vulnerabilities
+        if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.76.0
+          image-ref: guardian-beta:test
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: 'false'
+          exit-code: '1'
+          scanners: vuln
+          trivyignores: ''
+          cache: 'true'
+      - name: Scan migration image for release-blocking vulnerabilities
+        if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.76.0
+          image-ref: guardian-migration:test
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: 'false'
+          exit-code: '1'
+          scanners: vuln
+          trivyignores: ''
+          cache: 'true'
       - name: Keep browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
