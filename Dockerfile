@@ -5,6 +5,24 @@ RUN npm ci
 COPY . .
 RUN NITRO_PRESET=node-server npm run build
 
+FROM node:24-bookworm-slim AS migration-dependencies
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts
+
+FROM node:24-bookworm-slim AS migration
+ARG GUARDIAN_SOURCE_COMMIT
+LABEL org.opencontainers.image.revision=$GUARDIAN_SOURCE_COMMIT
+ENV NODE_ENV=production
+ENV GUARDIAN_RUNTIME_MODE=production
+ENV GUARDIAN_SOURCE_COMMIT=$GUARDIAN_SOURCE_COMMIT
+WORKDIR /app
+COPY --from=migration-dependencies --chown=node:node /app/node_modules ./node_modules
+COPY --chown=node:node scripts/migrate.mjs scripts/migration-plan.mjs ./scripts/
+COPY --chown=node:node migrations ./migrations
+USER node
+CMD ["node", "scripts/migrate.mjs"]
+
 FROM node:24-bookworm-slim AS runtime
 ARG GUARDIAN_SOURCE_COMMIT
 LABEL org.opencontainers.image.revision=$GUARDIAN_SOURCE_COMMIT
