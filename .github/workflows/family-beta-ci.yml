@@ -102,6 +102,25 @@ jobs:
             exit 1
           fi
           grep -Fq 'Guardian startup blocked' /tmp/guardian-startup.log
+      - name: Verify release images omit package-manager tooling
+        run: |
+          for image in guardian-beta:test guardian-migration:test; do
+            docker run --rm --network none --entrypoint sh "$image" -ec '
+              test "$(id -u)" != 0
+              test -e /lib/ld-musl-x86_64.so.1
+              test ! -d /usr/local/lib/node_modules/npm
+              test ! -d /usr/local/lib/node_modules/corepack
+              ! command -v npm
+              ! command -v npx
+              ! command -v yarn
+              ! command -v corepack
+              node --version
+            '
+          done
+      - name: Release-image phone and desktop account gate
+        env:
+          GUARDIAN_SMOKE_MODE: container
+        run: npm run test:browser
       - name: Scan runtime image for release-blocking vulnerabilities
         if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
@@ -110,11 +129,11 @@ jobs:
           image-ref: guardian-beta:test
           format: table
           severity: HIGH,CRITICAL
-          ignore-unfixed: 'false'
-          exit-code: '1'
+          ignore-unfixed: "false"
+          exit-code: "1"
           scanners: vuln
-          trivyignores: ''
-          cache: 'true'
+          trivyignores: ""
+          cache: "true"
       - name: Scan migration image for release-blocking vulnerabilities
         if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
@@ -123,11 +142,11 @@ jobs:
           image-ref: guardian-migration:test
           format: table
           severity: HIGH,CRITICAL
-          ignore-unfixed: 'false'
-          exit-code: '1'
+          ignore-unfixed: "false"
+          exit-code: "1"
           scanners: vuln
-          trivyignores: ''
-          cache: 'true'
+          trivyignores: ""
+          cache: "true"
       - name: Keep browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
