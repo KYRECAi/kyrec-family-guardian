@@ -110,10 +110,12 @@ jobs:
               test -e /lib/ld-musl-x86_64.so.1
               test ! -d /usr/local/lib/node_modules/npm
               test ! -d /usr/local/lib/node_modules/corepack
-              ! command -v npm
-              ! command -v npx
-              ! command -v yarn
-              ! command -v corepack
+              for tool in npm npx yarn yarnpkg corepack pnpm pnpx; do
+                if command -v "$tool"; then
+                  echo "Package-manager tooling remains in the release image."
+                  exit 1
+                fi
+              done
               node --version
             '
           done
