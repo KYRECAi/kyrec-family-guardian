@@ -54,15 +54,21 @@ change is included. The task's health check uses the real `/api/health` route.
 
 1. Build, smoke-test, scan and publish the exact reviewed Guardian source to
    `kyrec-family-guardian-staging`, then independently verify its ECR manifest and
-   source label. The current Dockerfile is not changed here. Core's clean image
-   scan is not evidence that the separate Guardian image is clean.
+   source label. The Dockerfile retains the existing final runtime target and adds a separate
+   `migration` target. Both images need their own scan and publication gate;
+   Core's clean image scan is not evidence that either Guardian image is clean.
 2. Provide a separate Guardian authentication database and restricted runtime
    login. If sharing the existing PostgreSQL instance, use an isolated database
    and role, never Core's runtime/bootstrap credentials. Review privileged setup
    and grants, apply Guardian migrations explicitly using its existing migrator,
    and test restart/persistence and cross-database refusal. This template does not
-   create a database or run migrations. The current runtime image does not include
-   the standalone migration source; prepare a separate reviewed migration runner.
+   create a database or run migrations. The separate Docker `migration` target includes the existing migration runner
+   and schema files with production dependencies only, runs as the node user,
+   and defaults to production mode. CI checks source identity, rejects a missing
+   database URL, migrates a fresh isolated PostgreSQL database, verifies the
+   account table and repeats the run without adding migration records. This does
+   not provision the live database, execution role or runtime grants. Run schema
+   work as a separate reviewed one-off task, never the app's normal startup.
 3. Provision the Guardian Core service identity and minimum domain/workspace
    grants using Core's operator-controlled mechanism. Register verified synthetic
    accounts, person/owner mapping and explicit consent separately. An empty memory
