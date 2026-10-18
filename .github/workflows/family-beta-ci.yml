@@ -45,6 +45,29 @@ jobs:
         run: |
           npm run db:migrate
           npm run db:migrate
+      - name: Verify isolated non-root migration image
+        env:
+          DATABASE_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_image_test
+          GUARDIAN_TEST_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --target migration --build-arg GUARDIAN_SOURCE_COMMIT="$GUARDIAN_TEST_SOURCE" -t guardian-migration:test .
+          test "$(docker inspect --format '{{.Config.User}}' guardian-migration:test)" = node
+          test "$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' guardian-migration:test)" = "$GUARDIAN_TEST_SOURCE"
+          if docker run --rm --network none guardian-migration:test > /tmp/guardian-migration-missing.log 2>&1; then
+            echo "Migration image accepted a missing database URL."
+            exit 1
+          fi
+          grep -Fq 'DATABASE_URL is required' /tmp/guardian-migration-missing.log
+          docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_test -v ON_ERROR_STOP=1 -c 'CREATE DATABASE guardian_image_test'
+          docker run --rm --network host --env DATABASE_URL guardian-migration:test
+          test "$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc "SELECT to_regclass('public.user') IS NOT NULL")" = t
+          before=$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc 'SELECT count(*) FROM _migrations')
+          test "$before" -gt 0
+          docker run --rm --network host --env DATABASE_URL guardian-migration:test > /tmp/guardian-migration-repeat.log 2>&1
+          grep -Fq '[migrate] up to date.' /tmp/guardian-migration-repeat.log
+          after=$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc 'SELECT count(*) FROM _migrations')
+          test "$before" = "$after"
       - name: Type and behavioral gates, including real PostgreSQL authentication
         env:
           GUARDIAN_TEST_POSTGRES_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_test
