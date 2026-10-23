@@ -21,7 +21,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
   return (
     <button
       type="button"
-      aria-label="Enter Family Guardian"
+      aria-label="Enter KYREC Family Guardian"
       onClick={enter}
       className="guardian-load fixed inset-0 z-[70] overflow-hidden text-white"
       style={{
@@ -41,7 +41,7 @@ export function Splash({ onDone }: { onDone: () => void }) {
           <img src="/brand/kyrec-k-mark.png" alt="" className="guardian-load-k" />
           <span className="guardian-load-spark" />
         </span>
-        <span className="mt-8 text-[34px] leading-none font-semibold tracking-[0.16em]">GUARDIAN</span>
+        <span className="mt-8 text-center text-[26px] leading-tight font-semibold tracking-wide">KYREC Family Guardian</span>
         <span className="mt-3 text-[13px] tracking-[0.28em] text-white/75">
           LOADING
           <span className="guardian-load-dots">...</span>
