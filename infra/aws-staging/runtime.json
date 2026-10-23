@@ -1,0 +1,649 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Prepared synthetic-only Guardian host; external account database/configuration and image prerequisites required. Not activated.",
+  "Parameters": {
+    "FoundationStackName": {
+      "Type": "String",
+      "Default": "kyrec-core-staging-foundation"
+    },
+    "ImageIdentifier": {
+      "Type": "String",
+      "AllowedPattern": "^149935825388\\.dkr\\.ecr\\.ap-southeast-2\\.amazonaws\\.com/kyrec-family-guardian-staging@sha256:[a-f0-9]{64}$"
+    },
+    "SourceCommit": {
+      "Type": "String",
+      "AllowedPattern": "^[a-f0-9]{40}$"
+    },
+    "ConfigurationSecretArn": {
+      "Type": "String",
+      "AllowedPattern": "^arn:aws:secretsmanager:ap-southeast-2:149935825388:secret:kyrec-family-guardian-staging/server-config-[A-Za-z0-9]{6}$",
+      "Description": "Existing populated and reviewed server configuration secret using the AWS-managed encryption key; never pass its value."
+    },
+    "AccountDatabaseSecurityGroupId": {
+      "Type": "AWS::EC2::SecurityGroup::Id",
+      "Description": "Verified SG for the private Guardian account database; this template does not create or migrate a database."
+    },
+    "DesiredCount": {
+      "Type": "Number",
+      "Default": 0,
+      "AllowedValues": [
+        0,
+        1
+      ],
+      "Description": "Keep zero until the migration, service identity, populated configuration and image scan gates pass."
+    }
+  },
+  "Resources": {
+    "RuntimeLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/kyrec/kyrec-family-guardian-staging/runtime",
+        "RetentionInDays": 30
+      }
+    },
+    "ApiAccessLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/kyrec/kyrec-family-guardian-staging/api",
+        "RetentionInDays": 30
+      }
+    },
+    "RuntimeSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Guardian staging task; inbound only from its API VPC link",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${FoundationStackName}-VpcId"
+          }
+        },
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 443,
+            "ToPort": 443,
+            "CidrIp": "0.0.0.0/0"
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 5432,
+            "ToPort": 5432,
+            "DestinationSecurityGroupId": {
+              "Ref": "AccountDatabaseSecurityGroupId"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "VpcLinkSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "API Gateway to Guardian staging only",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${FoundationStackName}-VpcId"
+          }
+        },
+        "SecurityGroupEgress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 8080,
+            "ToPort": 8080,
+            "DestinationSecurityGroupId": {
+              "Ref": "RuntimeSecurityGroup"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "ApiIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "RuntimeSecurityGroup"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 8080,
+        "ToPort": 8080,
+        "SourceSecurityGroupId": {
+          "Ref": "VpcLinkSecurityGroup"
+        }
+      }
+    },
+    "DatabaseIngress": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": {
+          "Ref": "AccountDatabaseSecurityGroupId"
+        },
+        "IpProtocol": "tcp",
+        "FromPort": 5432,
+        "ToPort": 5432,
+        "SourceSecurityGroupId": {
+          "Ref": "RuntimeSecurityGroup"
+        }
+      }
+    },
+    "ExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        ],
+        "Policies": [
+          {
+            "PolicyName": "ReadGuardianServerConfiguration",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": "secretsmanager:GetSecretValue",
+                  "Resource": {
+                    "Ref": "ConfigurationSecretArn"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "TaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Service": "ecs-tasks.amazonaws.com"
+              },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "Namespace": {
+      "Type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
+      "Properties": {
+        "Name": "kyrec-family-guardian-staging.internal",
+        "Vpc": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${FoundationStackName}-VpcId"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "DiscoveryService": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": "guardian",
+        "NamespaceId": {
+          "Ref": "Namespace"
+        },
+        "DnsConfig": {
+          "RoutingPolicy": "MULTIVALUE",
+          "DnsRecords": [
+            {
+              "Type": "SRV",
+              "TTL": 10
+            }
+          ]
+        },
+        "HealthCheckCustomConfig": {
+          "FailureThreshold": 1
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "Api": {
+      "Type": "AWS::ApiGatewayV2::Api",
+      "Properties": {
+        "Name": "kyrec-family-guardian-staging",
+        "ProtocolType": "HTTP",
+        "Tags": {
+          "Environment": "staging",
+          "DataClassification": "synthetic-only"
+        }
+      }
+    },
+    "VpcLink": {
+      "Type": "AWS::ApiGatewayV2::VpcLink",
+      "Properties": {
+        "Name": "kyrec-family-guardian-staging",
+        "SecurityGroupIds": [
+          {
+            "Ref": "VpcLinkSecurityGroup"
+          }
+        ],
+        "SubnetIds": {
+          "Fn::Split": [
+            ",",
+            {
+              "Fn::ImportValue": {
+                "Fn::Sub": "${FoundationStackName}-AppSubnetIds"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "Integration": {
+      "Type": "AWS::ApiGatewayV2::Integration",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "ConnectionId": {
+          "Ref": "VpcLink"
+        },
+        "ConnectionType": "VPC_LINK",
+        "IntegrationMethod": "ANY",
+        "IntegrationType": "HTTP_PROXY",
+        "IntegrationUri": {
+          "Fn::GetAtt": [
+            "DiscoveryService",
+            "Arn"
+          ]
+        },
+        "PayloadFormatVersion": "1.0",
+        "RequestParameters": {
+          "overwrite:path": "$request.path"
+        }
+      }
+    },
+    "DefaultRoute": {
+      "Type": "AWS::ApiGatewayV2::Route",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "RouteKey": "$default",
+        "AuthorizationType": "NONE",
+        "Target": {
+          "Fn::Join": [
+            "/",
+            [
+              "integrations",
+              {
+                "Ref": "Integration"
+              }
+            ]
+          ]
+        }
+      }
+    },
+    "Stage": {
+      "Type": "AWS::ApiGatewayV2::Stage",
+      "Properties": {
+        "ApiId": {
+          "Ref": "Api"
+        },
+        "StageName": "$default",
+        "AutoDeploy": true,
+        "DefaultRouteSettings": {
+          "ThrottlingBurstLimit": 50,
+          "ThrottlingRateLimit": 25
+        },
+        "AccessLogSettings": {
+          "DestinationArn": {
+            "Fn::GetAtt": [
+              "ApiAccessLogGroup",
+              "Arn"
+            ]
+          },
+          "Format": "{\"requestId\":\"$context.requestId\",\"status\":\"$context.status\",\"responseLength\":\"$context.responseLength\"}"
+        }
+      }
+    },
+    "TaskDefinition": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": "kyrec-family-guardian-staging",
+        "Cpu": "256",
+        "Memory": "512",
+        "NetworkMode": "awsvpc",
+        "RequiresCompatibilities": [
+          "FARGATE"
+        ],
+        "ExecutionRoleArn": {
+          "Fn::GetAtt": [
+            "ExecutionRole",
+            "Arn"
+          ]
+        },
+        "TaskRoleArn": {
+          "Fn::GetAtt": [
+            "TaskRole",
+            "Arn"
+          ]
+        },
+        "RuntimePlatform": {
+          "CpuArchitecture": "X86_64",
+          "OperatingSystemFamily": "LINUX"
+        },
+        "ContainerDefinitions": [
+          {
+            "Name": "guardian",
+            "Image": {
+              "Ref": "ImageIdentifier"
+            },
+            "Essential": true,
+            "PortMappings": [
+              {
+                "ContainerPort": 8080,
+                "Protocol": "tcp"
+              }
+            ],
+            "Environment": [
+              {
+                "Name": "NODE_ENV",
+                "Value": "production"
+              },
+              {
+                "Name": "GUARDIAN_RUNTIME_MODE",
+                "Value": "production"
+              },
+              {
+                "Name": "VITE_AUTH_ENABLED",
+                "Value": "true"
+              },
+              {
+                "Name": "NITRO_HOST",
+                "Value": "0.0.0.0"
+              },
+              {
+                "Name": "NITRO_PORT",
+                "Value": "8080"
+              },
+              {
+                "Name": "KYREC_CORE_URL",
+                "Value": "https://fz35op3ey3.execute-api.ap-southeast-2.amazonaws.com"
+              },
+              {
+                "Name": "KYREC_CORE_EXPECTED_COMMIT",
+                "Value": "117032f8cd174f12916f3e56abdfb1b8ea87820e"
+              },
+              {
+                "Name": "GUARDIAN_SOURCE_COMMIT",
+                "Value": {
+                  "Ref": "SourceCommit"
+                }
+              },
+              {
+                "Name": "BETTER_AUTH_URL",
+                "Value": {
+                  "Fn::GetAtt": [
+                    "Api",
+                    "ApiEndpoint"
+                  ]
+                }
+              }
+            ],
+            "Secrets": [
+              {
+                "Name": "DATABASE_URL",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:DATABASE_URL::"
+                }
+              },
+              {
+                "Name": "BETTER_AUTH_SECRET",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:BETTER_AUTH_SECRET::"
+                }
+              },
+              {
+                "Name": "RESEND_API_KEY",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:RESEND_API_KEY::"
+                }
+              },
+              {
+                "Name": "AUTH_EMAIL_FROM",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:AUTH_EMAIL_FROM::"
+                }
+              },
+              {
+                "Name": "KYREC_CORE_SERVICE_ID",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:KYREC_CORE_SERVICE_ID::"
+                }
+              },
+              {
+                "Name": "KYREC_CORE_SERVICE_KEY",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:KYREC_CORE_SERVICE_KEY::"
+                }
+              },
+              {
+                "Name": "OPENAI_API_KEY",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:OPENAI_API_KEY::"
+                }
+              },
+              {
+                "Name": "OPENAI_COMPANION_MODEL",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:OPENAI_COMPANION_MODEL::"
+                }
+              },
+              {
+                "Name": "GOOGLE_MAPS_BROWSER_KEY",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:GOOGLE_MAPS_BROWSER_KEY::"
+                }
+              },
+              {
+                "Name": "GOOGLE_MAPS_MAP_ID",
+                "ValueFrom": {
+                  "Fn::Sub": "${ConfigurationSecretArn}:GOOGLE_MAPS_MAP_ID::"
+                }
+              }
+            ],
+            "HealthCheck": {
+              "Command": [
+                "CMD-SHELL",
+                "node -e \"fetch('http://127.0.0.1:8080/api/health',{signal:AbortSignal.timeout(4000)}).then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""
+              ],
+              "Interval": 30,
+              "Timeout": 5,
+              "Retries": 3,
+              "StartPeriod": 60
+            },
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": {
+                  "Ref": "RuntimeLogGroup"
+                },
+                "awslogs-region": {
+                  "Ref": "AWS::Region"
+                },
+                "awslogs-stream-prefix": "guardian"
+              }
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "Service": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "ServiceName": "kyrec-family-guardian-staging",
+        "Cluster": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${FoundationStackName}-RuntimeClusterName"
+          }
+        },
+        "TaskDefinition": {
+          "Ref": "TaskDefinition"
+        },
+        "DesiredCount": {
+          "Ref": "DesiredCount"
+        },
+        "LaunchType": "FARGATE",
+        "PlatformVersion": "1.4.0",
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 100,
+          "DeploymentCircuitBreaker": {
+            "Enable": true,
+            "Rollback": true
+          }
+        },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Ref": "RuntimeSecurityGroup"
+              }
+            ],
+            "Subnets": {
+              "Fn::Split": [
+                ",",
+                {
+                  "Fn::ImportValue": {
+                    "Fn::Sub": "${FoundationStackName}-PublicSubnetIds"
+                  }
+                }
+              ]
+            }
+          }
+        },
+        "ServiceRegistries": [
+          {
+            "RegistryArn": {
+              "Fn::GetAtt": [
+                "DiscoveryService",
+                "Arn"
+              ]
+            },
+            "ContainerName": "guardian",
+            "ContainerPort": 8080
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      },
+      "DependsOn": [
+        "ApiIngress",
+        "DatabaseIngress"
+      ]
+    }
+  },
+  "Outputs": {
+    "ServiceUrl": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Api",
+          "ApiEndpoint"
+        ]
+      }
+    },
+    "ServiceArn": {
+      "Value": {
+        "Ref": "Service"
+      }
+    },
+    "TaskDefinitionArn": {
+      "Value": {
+        "Ref": "TaskDefinition"
+      }
+    }
+  }
+}
