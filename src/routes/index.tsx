@@ -44,7 +44,7 @@ function Home() {
       <div className="relative mx-auto max-w-lg px-4 pt-3">
         <section className="overflow-hidden rounded-[28px] bg-[radial-gradient(120%_80%_at_50%_0%,color-mix(in_oklab,var(--color-violet)_28%,white),var(--color-panel)_62%)] px-4 pt-4 pb-5 shadow-[var(--shadow-lift)]">
           <div className="flex items-center justify-between gap-3">
-            <p className="text-lg font-semibold tracking-[0.22em] text-violet">NOVA</p>
+            <p className="min-w-0 text-sm leading-tight font-semibold tracking-wide text-violet">KYREC Family Guardian</p>
             <span className="inline-flex items-center gap-1.5 rounded-full bg-panel/80 px-3 py-1 text-[11px] font-semibold shadow-[var(--shadow-border)]">
               <span className={`size-2 rounded-full ${safe ? "bg-green shadow-[0_0_8px_#16a34a]" : "bg-gold"}`} />
               {paused ? "Sharing paused" : safe ? "Everyone is safe" : `${moving.length} on the way`}
