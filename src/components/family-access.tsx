@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import { authClient, signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { HouseholdProvider, useHousehold } from "@/lib/household-context";
@@ -366,7 +366,9 @@ function HouseholdGate({ children }: { children: ReactNode }) {
 }
 
 export function FamilyAccess({ children }: { children: ReactNode }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Gate the route being rendered, not the destination of an in-flight transition.
+  // Otherwise a public destination can expose the previous private outlet briefly.
+  const pathname = useMatches({ select: (matches) => matches.at(-1)?.pathname ?? "/" });
   const { user, isPending } = useCurrentUserState();
   const [localReady, setLocalReady] = useState(false);
   const personalUserId = user?.id;

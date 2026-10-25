@@ -1,10 +1,34 @@
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { ClientOnly, createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { FamilyAccess } from "@/components/family-access";
+import { isMobilePackage } from "@/lib/mobile";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "KYREC Family Guardian";
+
+function FamilyContent() {
+  const content = (
+    <FamilyAccess>
+      <Outlet />
+    </FamilyAccess>
+  );
+  // One bundled HTML shell serves every device route. Keep its first render
+  // independent of the launch path, then resolve account access after hydration.
+  return isMobilePackage ? (
+    <ClientOnly
+      fallback={
+        <p role="status" className="p-8">
+          Opening Guardian…
+        </p>
+      }
+    >
+      {content}
+    </ClientOnly>
+  ) : (
+    content
+  );
+}
 
 export const Route = createRootRoute({
   head: () => ({
@@ -37,9 +61,7 @@ export const Route = createRootRoute({
       <body className="antialiased">
         <PreviewHostBridge />
         <AuthProvider>
-          <FamilyAccess>
-            <Outlet />
-          </FamilyAccess>
+          <FamilyContent />
         </AuthProvider>
         <Scripts />
       </body>
