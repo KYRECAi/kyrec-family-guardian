@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { CompanionChatMemory } from "./companion-chat-memory";
 import { Maximize2, X } from "lucide-react";
 import { askCompanion, setCompanionConsent } from "@/lib/companion-ai";
 import { COMPANION_LORE, type CompanionId } from "@/lib/companions";
@@ -15,29 +16,44 @@ const STARTERS: Record<CompanionId, string[]> = {
 
 const EMPTY: { role: "user" | "them"; text: string }[] = [];
 
-export function CompanionChat({
-  id,
-  full,
-  onFull,
-  onClose,
-}: {
+type CompanionChatProps = {
   id: CompanionId;
   full?: boolean;
   onFull?: () => void;
   onClose?: () => void;
-}) {
+};
+
+export function CompanionChat(props: CompanionChatProps) {
+  const { snapshot } = useHousehold();
+  const { user } = useCurrentUserState();
+  // A new identity/role/household owns a new component instance. Pending replies
+  // and consent callbacks retain the old instance and cannot enter the new chat.
+  const scope = JSON.stringify([
+    props.id,
+    user?.id ?? null,
+    snapshot?.household_id ?? null,
+    snapshot?.member_role ?? null,
+  ]);
+  return <CompanionChatSession key={scope} {...props} />;
+}
+
+function CompanionChatSession({ id, full, onFull, onClose }: CompanionChatProps) {
   const c = COMPANION_LORE[id];
   const { snapshot } = useHousehold();
   const { user } = useCurrentUserState();
   const [messages, setMessages] = useState(EMPTY);
   const [consent, setConsent] = useState(false);
-  useEffect(() => {
-    setMessages([]);
-    setConsent(false);
-  }, [id, user?.id]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [memoryIds, setMemoryIds] = useState<string[]>([]);
+  const [memoryVersion, setMemoryVersion] = useState(0);
+  function chooseMemory(ids: string[]) {
+    setMemoryIds(ids);
+    setMessages(EMPTY);
+    setText("");
+    setError(null);
+  }
   const scroller = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,7 +76,7 @@ export function CompanionChat({
     setBusy(true);
     setError(null);
     setText("");
-    if (!snapshot || !consent) {
+    if (!snapshot || !consent || !user || snapshot.member_role !== "adult") {
       setError("Choose whether to send your messages to OpenAI before chatting.");
       setBusy(false);
       return;
@@ -73,11 +89,22 @@ export function CompanionChat({
           household: snapshot.household_id,
           request_id: crypto.randomUUID(),
           prompt: q,
-          history: messages.slice(-6).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
+          memory_ids: memoryIds,
+          memory_consent: memoryIds.length > 0,
+          history: memoryIds.length
+            ? []
+            : messages.slice(-6).map((m) => ({ role: m.role, text: m.text.slice(0, 600) })),
         },
       });
       if (res.ok) setMessages((current) => [...current, { role: "them", text: res.text }]);
-      else setError(res.error);
+      else {
+        if ("reset_memory" in res && res.reset_memory) {
+          setMemoryIds([]);
+          setMessages(EMPTY);
+          setMemoryVersion((v) => v + 1);
+        }
+        setError(res.error);
+      }
     } catch {
       setError("The companion connection is unavailable. Please try later.");
     }
@@ -110,13 +137,19 @@ export function CompanionChat({
         <input
           type="checkbox"
           checked={consent}
-          disabled={busy || snapshot?.member_role !== "adult"}
+          disabled={busy || !user || snapshot?.member_role !== "adult"}
           onChange={(e) => {
             const enabled = e.target.checked;
             if (!snapshot) return;
             setBusy(true);
             void setCompanionConsent({ data: { household: snapshot.household_id, enabled } })
-              .then(() => setConsent(enabled))
+              .then(() => {
+                setConsent(enabled);
+                if (!enabled) {
+                  chooseMemory([]);
+                  setMemoryVersion((v) => v + 1);
+                }
+              })
               .catch(() => setError("Could not save your companion choice."))
               .finally(() => setBusy(false));
           }}
@@ -131,6 +164,17 @@ export function CompanionChat({
         </a>
         . Child companion access requires separate release checks.
       </p>
+      {snapshot && user && snapshot.member_role === "adult" ? (
+        <CompanionChatMemory
+          key={memoryVersion}
+          id={id}
+          name={c.name}
+          household={snapshot.household_id}
+          disabled={busy || !consent}
+          selected={memoryIds}
+          onChange={chooseMemory}
+        />
+      ) : null}
       <div
         ref={scroller}
         className={
