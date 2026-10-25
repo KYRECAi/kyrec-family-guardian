@@ -1,0 +1,84 @@
+name: Guardian installed app
+
+on:
+  push:
+    branches: [codex/guardian-installed-app]
+  pull_request:
+    branches: [main]
+    paths:
+      - "capacitor.config.json"
+      - "package*.json"
+      - "vite.config.ts"
+      - "src/**"
+      - "scripts/*mobile*"
+      - ".github/workflows/mobile-package.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guardian-mobile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: "21"
+      - run: npm ci
+      - run: npm run typecheck && npm run lint && npm test
+      - run: npm run build:mobile
+      - run: npm run mobile:prepare -- android
+      - name: Compile development APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:mobile
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: guardian-android-development
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            artifacts/mobile-package
+          if-no-files-found: error
+          retention-days: 14
+
+  ios:
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build:mobile
+      - run: npm run mobile:prepare -- ios
+      - name: Compile unsigned simulator app
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath artifacts/ios-build CODE_SIGNING_ALLOWED=NO build
+          ditto -c -k --keepParent artifacts/ios-build/Build/Products/Debug-iphonesimulator/App.app artifacts/Guardian-iOS-Simulator.zip
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: guardian-ios-simulator
+          path: artifacts/Guardian-iOS-Simulator.zip
+          if-no-files-found: error
+          retention-days: 14
