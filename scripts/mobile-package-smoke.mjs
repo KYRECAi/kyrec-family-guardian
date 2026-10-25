@@ -43,6 +43,7 @@ const server = createServer(async (req, res) => {
 await new Promise((done) => server.listen(0, "127.0.0.1", done));
 const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
+const observations = [];
 try {
   await mkdir(evidence, { recursive: true });
   browser = await chromium.launch({ args: ["--no-sandbox"] });
@@ -55,6 +56,7 @@ try {
     const page = await context.newPage();
     const errors = [];
     const privateRequests = [];
+    observations.push({ viewport, errors, privateRequests });
     page.on("pageerror", (error) => errors.push(error.message));
     page.on("console", (message) => {
       if (message.type() === "error") errors.push(message.text());
@@ -82,13 +84,16 @@ try {
       fullPage: true,
     });
     await page.getByRole("link", { name: "Privacy", exact: true }).click();
-    assert.ok((await page.locator("main").innerText()).toLowerCase().includes("privacy"));
+    await page.getByRole("heading", { name: "Privacy", exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, "/privacy");
     await page.reload();
-    assert.ok((await page.locator("main").innerText()).toLowerCase().includes("privacy"));
+    await page.getByRole("heading", { name: "Privacy", exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, "/privacy");
     await page.goto(origin);
     await page.getByRole("heading", { name: "KYREC Family Guardian", exact: true }).waitFor();
     await page.getByRole("link", { name: "Privacy", exact: true }).click();
-    assert.ok((await page.locator("main").innerText()).toLowerCase().includes("privacy"));
+    await page.getByRole("heading", { name: "Privacy", exact: true }).waitFor();
+    assert.equal(new URL(page.url()).pathname, "/privacy");
     await context.setOffline(true);
     await page.goBack();
     await page.getByRole("heading", { name: "KYREC Family Guardian", exact: true }).waitFor();
@@ -100,6 +105,8 @@ try {
   await writeFile(resolve(evidence, "verdict.json"), JSON.stringify(results, null, 2));
   console.log(JSON.stringify(results, null, 2));
 } finally {
+  await mkdir(evidence, { recursive: true });
+  await writeFile(resolve(evidence, "observations.json"), JSON.stringify(observations, null, 2));
   if (browser) await browser.close();
   await new Promise((done) => server.close(done));
 }
