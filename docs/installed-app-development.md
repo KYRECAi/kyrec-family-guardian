@@ -51,8 +51,8 @@ approved memory, then forget/revoke. Current email verification uses links;
 numeric verification codes are not implemented by this packaging change.
 Each companion must receive only the Core context permitted for its role. Test
 cooperation for a relevant task through the existing Core routing rules, as well
-as cross-companion, account and household isolation. Current companion chat does
-not retrieve approved Core memory or routed intelligence yet.
+as cross-companion, account and household isolation. Companion memory chat now has a tested source integration (see companion-connections.md).
+Automatic routed intelligence and native session transport remain separate work.
 
 The GitHub workflow builds a debug Android APK and an unsigned iOS simulator
 app. Neither job deploys AWS resources, a website or an app-store release.

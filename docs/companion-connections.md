@@ -1,75 +1,91 @@
-# Guardian companion connection checkpoint — 26 October 2026
+# Guardian companion memory connection - 26 October 2026
 
-All five companions are in scope: Stan, Nova, Pulse, Moneybags and Scout.
-Each retains its established role and its individual connection/context.
-Cooperation happens for a relevant task through existing Core permissions and
-routing; no companion is the hub for the others. This work does not redefine
-characters, install a new Core memory store, or create a blanket shared context.
+All five companions are connected through the same bounded memory contract,
+with independent selections and existing roles: Stan, Nova, Pulse, Moneybags and
+Scout. Core's existing reviewed-memory store, role routing, approval and forget
+lifecycle remain authoritative. This is an additive adapter, not a new memory
+store or a replacement for the existing intelligence packs.
 
-## Verified source position
+## What the app does
 
-Guardian base: `75c54ce03ca2c5e356e11d18f6f33e375c5e781c` (installed-app PR #20).
-Core inspected read-only: `fb9d9801d77017ff7aa464d1bb558c03528afcb8`.
-Core source is present; this check did not establish live grants or device use.
+After consenting to companion chat, an adult chooses approved facts relevant to
+the selected companion. The notice explicitly identifies OpenAI as the provider
+receiving those facts. Up to eight facts may be selected; none is selected by
+default. Another companion needs its own selection. For a relevant coordinated
+task, the user may select the same approved fact for two companions without
+transferring either conversation. Automatic pack-to-chat orchestration is not
+part of this memory connection; existing Core coordinated flows remain intact.
 
-| Companion | Existing Core capability located | Guardian chat connection |
-| --- | --- | --- |
-| Stan | Trusted-observation bridge and human-control boundaries | Individual chat exists; no approved-memory or routed-intelligence retrieval |
-| Nova | Individual meal/support policies and relevant coordinated flows | Same missing retrieval |
-| Pulse | Family Flow, planning and connection policies; coordinated flows | Same missing retrieval |
-| Moneybags | Family Money policies and separate points/bonus authority | Same missing retrieval; chat never grants reward authority |
-| Scout | Journey/travel services and planning capabilities | Same missing retrieval |
+Remember a fact submits one explicit structured suggestion. Core's configured
+owner still approves or dismisses it through the existing review panel. Typing a
+chat message does not automatically save a fact or transcript. Review or forget
+memories opens the existing companion review screen. Forgotten facts are
+excluded from future recall; historical records and backups remain.
 
-The source includes a coordinated Family Flow/Meals case with distinct Pulse,
-Nova and Moneybags policies. It is evidence of existing role routing, not proof
-that Guardian's chat is connected to it. Existing character roles and scopes
-remain authoritative.
+Selections and conversations stay in the current component session. Switching
+companion, account, household or member role resets them. Changing memory
+choices clears the chat. A memory-backed answer uses the new message and fresh
+facts, without previous turns that could repeat a forgotten fact. Approved facts
+remain in Core and can be selected again after restarting the app.
 
-The current Guardian memory functions review pending/current records and
-approve/dismiss/forget through `companion-memory-v1`. That interface binds
-a verified account to a permitted subject/workspace; it has no receiving
-companion or chat-purpose selector. A permitted review is not, on its own,
-permission to send every returned fact to every companion or an AI provider.
-The generic intelligence read route is development-only. The separate native
-review contract supplies recipient-permitted text, but no companion identity.
-Do not bypass these differences by guessing a destination from text.
+## Contract and authority
 
-Before chat recall is enabled, establish the exact product-facing recipient and
-purpose contract around the existing Core services and policies, including
-current identity, household, consent, expiry, revocation and provider-disclosure
-checks. Identify any required adapter addition separately from Core's existing
-memory/routing logic. No such addition or grant provisioning is part of this fix.
+Product baseline: PR #21, 3b1f87d36167944c841ce4cc3208c5298367c8b9.
+Core baseline: fb9d9801d77017ff7aa464d1bb558c03528afcb8.
+Core adapter: PR #78; exact paired heads are pinned in the Core memory-pair CI.
 
-## Actual Guardian fix
+New contract: guardian-memory-chat-v1. Under /v1/guardian/companion-memory:
 
-The old component cleared some state in an effect after a companion/account
-change, but left old asynchronous callbacks attached to the newly displayed
-chat. A browser regression reproduced a delayed Stan answer in Nova's chat.
-Household changes did not clear chat state either.
+- GET chat-options: household UUID and companion; approved own facts and registered proposal fields.
+- POST chat-context: household, companion, selected UUIDs, purpose companion_chat,
+  provider openai, current notice and explicit consent true.
+- PUT chat-proposals/{operation_id}: household, companion and one registered fact;
+  returns the existing companion-memory-v1 proposal receipt.
 
-A chat instance is now keyed by companion, signed-in account, household and
-member role. Switching any of them removes the old messages, input draft,
-consent choice, error and busy state. Old reply/consent callbacks remain tied to
-the retired instance. This is transient UI isolation, not durable memory or
-cancellation of a request already sent to the server. No transcript is persisted
-or handed to another companion. Existing server authentication remains required.
+Guardian server functions verify the real account session. Core authenticates
+the service and its current workspace grant, binds the verified account's own
+adult subject, and checks the existing household membership and workspace map.
+The existing registry must explicitly include memory:chat:<companion>:openai
+for each intended companion, alongside memory:read (and memory:propose for
+suggestions). Existing review/read grants are not upgraded automatically.
+The source service must be family_guardian. Device grants and another person's
+review authority do not grant chat disclosure.
 
-## Verification and acceptance
+Every recalled UUID must still be approved, active and permitted. Core applies
+existing retention consent, scope and expiry checks. Missing/unknown/forgotten
+IDs deny the whole selection. The app validates exact recipient, household,
+purpose, provider and returned UUIDs before constructing a provider request.
+Core is checked again after generation; changed/revoked context discards that
+answer and clears memory selection. An already transmitted fact cannot be
+withdrawn from an in-flight provider request or a previously displayed answer.
 
-`npm run test:companion:browser` mounts the real chat component with synthetic
-API functions and controlled delayed promises. It checks all five roles, fresh
-outgoing history, late replies/consent, account changes, sign-out, household and
-role changes, phone/desktop layout and console errors in development and built
-output. Requests to outside hosts are blocked. It uses no live credentials or
-family conversations. This test is part of the Family beta CI gate.
+Core access audit records operation, recipient, provider and selected count,
+without values, transcripts or memory UUIDs. Responses are no-store. Facts enter
+the model as user data, never privileged instructions; keys and record IDs stay
+out of the provider's content. No actions, points or approvals can be executed
+by the model. Existing voices and safeguarding responses are preserved.
 
-The integration acceptance flow remains: connect each companion individually;
-verify that only its permitted context arrives; exercise a relevant coordinated
-task under existing Core rules; approve/recall/restart/forget; revoke access;
-prove another companion, person or household receives nothing without authority.
+## Validation and release
 
-Release status: HOLD for connected family use. Native authentication and secure
-session transport, actual memory-to-companion permission contracts, live service
-bindings and device acceptance remain open. A passing isolation test is not a
-claim that those connections now exist. No Core runtime/source branch, website,
-AWS configuration, credentials or grants were changed in this task.
+New Core tests cover all recipients, exact selection, own-adult authority,
+household/service/workspace membership, scope/consent/expiry, malformed requests,
+proposal/review/forget and audit failure. Guardian tests cover strict envelopes,
+selected payloads, provider-data separation and revocation during generation.
+The real component browser gate exercises selection, suggestion, reset, denied
+access and phone/desktop/full-screen layout in development and built output.
+The paired runner uses real Core HTTP routes, Guardian server transport and
+service logic with captured synthetic provider responses. No live model call is
+required for these checks.
+
+Local Windows typecheck and lint pass (four existing warnings). An initial local
+full build hit Windows EPERM copying a generated install asset; Linux CI runs
+both full build targets and native packaging. Exact run results belong in the
+PRs, not inferred from a successful component harness.
+
+Release remains HOLD for connected family use until reviewed source is activated
+and current service/account/household bindings, scoped grants and consent are
+provisioned. Native authentication/session transport, real device acceptance
+and live provider configuration remain separate open work. No website, AWS
+runtime, credential, grant or account binding is deployed or changed by this PR.
+Rollback: leave the existing runtime and grants in place; remove the app adapter
+before removing the additive Core routes. There is no data migration to undo.

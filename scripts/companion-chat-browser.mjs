@@ -27,14 +27,16 @@ const listeners = new Set<()=>void>();
 const requests:any[] = [];
 const pending:any[] = [];
 const controls = window.controls = {
- requests, pending, delayConsent:false,
+ requests, pending, proposals:[], denyMemory:false, delayConsent:false,
  change(patch:any) { state={...state,...patch}; listeners.forEach(fn=>fn()); },
- complete(text:string) { const item=pending.shift(); if(!item) throw Error("No pending request"); item.resolve(item.kind==="chat"?{ok:true,text}:{enabled:true}); },
+ complete(text:string) { const item=pending.shift(); if(!item) throw Error("No pending request"); item.resolve(item.kind==="chat"?(typeof text==="string"?{ok:true,text}:text):{enabled:true}); },
 };
 export function useHarness() { return useSyncExternalStore(fn=>{listeners.add(fn); return ()=>listeners.delete(fn);},()=>state); }
 export function useCurrentUserState() { const s=useHarness(); return {user:s.user?{id:s.user,emailVerified:true}:null,isPending:false}; }
 export function useHousehold() { const s=useHarness(); return {snapshot:{household_id:s.household,member_role:s.role}}; }
 export async function askCompanion({data}:any) { requests.push(structuredClone(data)); return new Promise(resolve=>pending.push({kind:"chat",resolve})); }
+export async function readChatMemories() { if(controls.denyMemory)throw Error("Synthetic denial");return {memories:[{memory_id:"11111111-1111-4111-8111-111111111111",category:"preference",memory_key:"communication_style",value:"Concise replies"},{memory_id:"22222222-2222-4222-8222-222222222222",category:"preference",memory_key:"meal_preference",value:"Vegetarian"}],fields:[{category:"preference",memory_key:"communication_style"}]}; }
+export async function suggestChatMemory({data}:any) { controls.proposals.push(data); return {status:"pending"}; }
 export async function setCompanionConsent({data}:any) { if(controls.delayConsent) return new Promise(resolve=>pending.push({kind:"consent",resolve})); return {enabled:data.enabled}; }
 `,
 );
@@ -46,7 +48,7 @@ import { createRoot } from "react-dom/client";
 import { CompanionChat } from "@/components/companion-chat";
 import { useHarness } from "./fixtures";
 import "./harness.css";
-function Harness() { const s=useHarness(); return <main className="mx-auto max-w-lg p-4"><CompanionChat id={s.id}/></main>; }
+function Harness() { const s=useHarness(); return <main className="mx-auto max-w-lg p-4"><CompanionChat id={s.id} full={s.full} onFull={()=>window.controls.change({full:true})} onClose={()=>window.controls.change({full:false})}/></main>; }
 createRoot(document.getElementById("root")!).render(<React.StrictMode><Harness/></React.StrictMode>);
 `,
 );
@@ -89,7 +91,7 @@ try {
       page.on("pageerror", (e) => errors.push(e.message));
       await page.route(/^https?:\/\/(?!127\.0\.0\.1)/, (route) => route.abort());
       await page.goto("http://127.0.0.1:" + (mode === "development" ? 8193 : 8194));
-      const consent = page.getByRole("checkbox");
+      const consent = page.getByRole("checkbox").first();
       const input = page.locator('input[maxlength="600"]');
       const send = page.getByRole("button", { name: "Send", exact: true });
       const roles = ["stan", "nova", "pulse", "moneybags", "scout"];
@@ -194,6 +196,72 @@ try {
       await enable();
       await ask("Synthetic Scout question");
       await complete("Synthetic Scout answer.");
+      for (const id of roles) {
+        await change({ id, household: "00000000-0000-4000-8000-000000000001" });
+        await settle();
+        await enable();
+        await page.getByRole("button", { name: "Choose remembered facts", exact: true }).click();
+        const fact = page.getByRole("checkbox", {
+          name: new RegExp("Use with " + labels[id] + ": communication style"),
+        });
+        await fact.check();
+        await ask("Use my selected preference");
+        const selected = await page.evaluate(() => window.controls.requests.at(-1));
+        assert.deepEqual(selected.memory_ids, ["11111111-1111-4111-8111-111111111111"]);
+        assert.equal(selected.memory_consent, true);
+        assert.equal(selected.id, id);
+        assert.deepEqual(selected.history, []);
+        await complete("Memory-backed answer for " + id);
+        await fact.uncheck();
+        assert.equal(
+          await page.getByText("Memory-backed answer for " + id, { exact: true }).count(),
+          0,
+        );
+        await fact.check();
+        await ask("Synthetic revoked memory");
+        await complete({ ok: false, error: "Synthetic memory revoked", reset_memory: true });
+        await page.getByText("Synthetic memory revoked", { exact: true }).waitFor();
+        await page.getByRole("button", { name: "Choose remembered facts", exact: true }).click();
+        await page.getByRole("button", { name: "Remember a fact", exact: true }).click();
+        await page.getByLabel("Fact to remember", { exact: true }).fill("One fact for " + id);
+        await page.getByRole("button", { name: "Send for memory review", exact: true }).click();
+        await page
+          .getByText(
+            "Suggestion saved for owner review. It is not available to chat until approved.",
+            { exact: true },
+          )
+          .waitFor();
+        const proposed = await page.evaluate(() => window.controls.proposals.at(-1));
+        assert.equal(proposed.id, id);
+        assert.equal(proposed.fact.value, "One fact for " + id);
+        assert.equal(await fact.isChecked(), false, "New proposal must not be auto-selected");
+      }
+      await page.evaluate(() => {
+        window.controls.denyMemory = true;
+      });
+      await page.getByRole("button", { name: "Refresh memory choices", exact: true }).click();
+      await page
+        .getByText(
+          "Memory is unavailable for this companion. You can still chat without remembered facts.",
+          { exact: true },
+        )
+        .waitFor();
+      await ask("No memory fallback chosen by user");
+      assert.deepEqual(await page.evaluate(() => window.controls.requests.at(-1).memory_ids), []);
+      await complete("Ordinary chat still available.");
+      await page.evaluate(() => {
+        window.controls.denyMemory = false;
+      });
+      await page.getByRole("button", { name: "Choose remembered facts", exact: true }).click();
+      await page.getByRole("checkbox", { name: /Use with Scout: communication style/ }).check();
+      await page.getByRole("button", { name: "Full screen", exact: true }).click();
+      await page.getByRole("button", { name: "Remember a fact", exact: true }).click();
+      assert.ok(
+        await input.evaluate((el) => el.getBoundingClientRect().bottom <= window.innerHeight),
+        "Composer must stay visible in full screen",
+      );
+      await page.getByRole("button", { name: "Close chat", exact: true }).click();
+      await page.getByRole("button", { name: "Remember a fact", exact: true }).click();
       await page.screenshot({
         path: "artifacts/family-beta/companion-chat-" + mode + "-" + width + ".png",
         fullPage: true,
