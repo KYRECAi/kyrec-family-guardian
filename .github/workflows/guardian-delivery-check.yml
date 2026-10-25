@@ -1,0 +1,32 @@
+name: Guardian delivery preparation
+on:
+  pull_request:
+    branches: [main, codex/prepare-sydney-guardian-host]
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  delivery:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - run: node --test scripts/guardian-release.test.mjs
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+        with:
+          python-version: "3.13"
+      - name: Validate AWS templates and parse workflow YAML
+        run: |
+          python -m pip install --disable-pip-version-check "cfn-lint==1.57.2"
+          cfn-lint infra/aws-staging/github-publisher.json infra/aws-staging/runtime.json
+          python -c "import pathlib,yaml; [yaml.safe_load(p.read_text()) for p in pathlib.Path('.github/workflows').glob('*.yml')]"
+  beta:
+    if: github.event_name == 'pull_request' && github.base_ref == 'codex/prepare-sydney-guardian-host'
+    uses: ./.github/workflows/family-beta-ci.yml

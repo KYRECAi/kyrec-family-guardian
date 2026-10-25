@@ -1,6 +1,12 @@
 name: Family beta gate
 
 on:
+  workflow_call:
+    inputs:
+      retain_release_images:
+        type: boolean
+        required: false
+        default: false
   pull_request:
     branches: [main]
   push:
@@ -149,6 +155,20 @@ jobs:
           scanners: vuln
           trivyignores: ""
           cache: "true"
+      - name: Retain the exact tested release images
+        if: ${{ success() && inputs.retain_release_images }}
+        run: |
+          node scripts/guardian-release.mjs record
+          docker save guardian-beta:test guardian-migration:test -o artifacts/guardian-release/images.tar
+      - name: Upload this run's tested release images
+        if: ${{ success() && inputs.retain_release_images }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: guardian-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/guardian-release/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
       - name: Keep browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
