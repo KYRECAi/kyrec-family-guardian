@@ -10,6 +10,8 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      "android/**",
+      "ios/**",
       "artifacts/native-review-harness/**",
       ".output/**",
       ".vercel/**",
