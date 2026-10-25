@@ -45,10 +45,14 @@ server-side. The service boundary is mobile app -> authenticated Guardian API
 -> permitted Core operation.
 
 The first connected acceptance flow is install, register, verify, sign in,
-talk to Stan, explicitly approve a memory, restart and recall only that user's
+exercise Stan, Nova, Pulse, Moneybags and Scout individually in their existing roles,
+explicitly approve a memory, restart and recall only that user's
 approved memory, then forget/revoke. Current email verification uses links;
 numeric verification codes are not implemented by this packaging change.
-Current companion chat does not retrieve approved Core memory yet.
+Each companion must receive only the Core context permitted for its role. Test
+cooperation for a relevant task through the existing Core routing rules, as well
+as cross-companion, account and household isolation. Current companion chat does
+not retrieve approved Core memory or routed intelligence yet.
 
 The GitHub workflow builds a debug Android APK and an unsigned iOS simulator
 app. Neither job deploys AWS resources, a website or an app-store release.

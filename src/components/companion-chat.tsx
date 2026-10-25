@@ -15,26 +15,33 @@ const STARTERS: Record<CompanionId, string[]> = {
 
 const EMPTY: { role: "user" | "them"; text: string }[] = [];
 
-export function CompanionChat({
-  id,
-  full,
-  onFull,
-  onClose,
-}: {
+type CompanionChatProps = {
   id: CompanionId;
   full?: boolean;
   onFull?: () => void;
   onClose?: () => void;
-}) {
+};
+
+export function CompanionChat(props: CompanionChatProps) {
+  const { snapshot } = useHousehold();
+  const { user } = useCurrentUserState();
+  // A new identity/role/household owns a new component instance. Pending replies
+  // and consent callbacks retain the old instance and cannot enter the new chat.
+  const scope = JSON.stringify([
+    props.id,
+    user?.id ?? null,
+    snapshot?.household_id ?? null,
+    snapshot?.member_role ?? null,
+  ]);
+  return <CompanionChatSession key={scope} {...props} />;
+}
+
+function CompanionChatSession({ id, full, onFull, onClose }: CompanionChatProps) {
   const c = COMPANION_LORE[id];
   const { snapshot } = useHousehold();
   const { user } = useCurrentUserState();
   const [messages, setMessages] = useState(EMPTY);
   const [consent, setConsent] = useState(false);
-  useEffect(() => {
-    setMessages([]);
-    setConsent(false);
-  }, [id, user?.id]);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -60,7 +67,7 @@ export function CompanionChat({
     setBusy(true);
     setError(null);
     setText("");
-    if (!snapshot || !consent) {
+    if (!snapshot || !consent || !user || snapshot.member_role !== "adult") {
       setError("Choose whether to send your messages to OpenAI before chatting.");
       setBusy(false);
       return;
@@ -110,7 +117,7 @@ export function CompanionChat({
         <input
           type="checkbox"
           checked={consent}
-          disabled={busy || snapshot?.member_role !== "adult"}
+          disabled={busy || !user || snapshot?.member_role !== "adult"}
           onChange={(e) => {
             const enabled = e.target.checked;
             if (!snapshot) return;

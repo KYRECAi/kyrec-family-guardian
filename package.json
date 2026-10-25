@@ -27,7 +27,8 @@
     "format": "prettier --write .",
     "test:browser": "node scripts/family-beta-smoke.mjs",
     "start": "node scripts/start-production.mjs",
-    "test:native:browser": "node scripts/native-review-browser.mjs"
+    "test:native:browser": "node scripts/native-review-browser.mjs",
+    "test:companion:browser": "node scripts/companion-chat-browser.mjs"
   },
   "dependencies": {
     "@capacitor/android": "8.4.3",

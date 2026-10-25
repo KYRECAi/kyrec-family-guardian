@@ -13,6 +13,7 @@ export default tseslint.config(
       "android/**",
       "ios/**",
       "artifacts/native-review-harness/**",
+      "artifacts/companion-chat-harness/**",
       ".output/**",
       ".vercel/**",
       ".nitro/**",
