@@ -1,0 +1,62 @@
+name: Guardian tested image publication
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish both tested images to Guardian ECR (approved bootstrap required)
+        type: boolean
+        required: true
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: guardian-image-publication
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: github.ref == 'refs/heads/main'
+    uses: ./.github/workflows/family-beta-ci.yml
+    with:
+      retain_release_images: true
+  publish:
+    if: github.ref == 'refs/heads/main' && inputs.publish
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: guardian-image-publication
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: guardian-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/guardian-release
+      - name: Obtain temporary Guardian-only publication credentials
+        uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd
+        with:
+          role-to-assume: arn:aws:iam::149935825388:role/kyrec/staging/kyrec-guardian-staging-publisher
+          aws-region: ap-southeast-2
+          allowed-account-ids: "149935825388"
+          role-duration-seconds: 900
+          role-session-name: guardian-images-${{ github.run_id }}
+          unset-current-credentials: true
+          retry-max-attempts: 2
+      - name: Publish and independently pull both verified digests
+        run: node scripts/guardian-release.mjs publish
+      - name: Retain release identity
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: guardian-published-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/guardian-release/release.json
+          if-no-files-found: error
+          retention-days: 30

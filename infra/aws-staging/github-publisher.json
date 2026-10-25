@@ -1,0 +1,112 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Guardian image publication only; approved bootstrap required in account 149935825388 Sydney. Existing GitHub OIDC provider and protected environment required. No runtime activation.",
+  "Resources": {
+    "Repository": {
+      "Type": "AWS::ECR::Repository",
+      "DeletionPolicy": "Retain",
+      "UpdateReplacePolicy": "Retain",
+      "Properties": {
+        "RepositoryName": "kyrec-family-guardian-staging",
+        "ImageTagMutability": "IMMUTABLE",
+        "ImageScanningConfiguration": {
+          "ScanOnPush": true
+        },
+        "EncryptionConfiguration": {
+          "EncryptionType": "AES256"
+        },
+        "Tags": [
+          {
+            "Key": "Environment",
+            "Value": "staging"
+          },
+          {
+            "Key": "DataClassification",
+            "Value": "synthetic-only"
+          }
+        ]
+      }
+    },
+    "PublisherRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": "kyrec-guardian-staging-publisher",
+        "Path": "/kyrec/staging/",
+        "MaxSessionDuration": 3600,
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "Federated": "arn:aws:iam::149935825388:oidc-provider/token.actions.githubusercontent.com"
+              },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": {
+                  "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+                  "token.actions.githubusercontent.com:sub": "repo:KYRECAi/kyrec-family-guardian:environment:guardian-image-publication"
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "GuardianImagesOnly",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:GetAuthorizationToken"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "ecr:DescribeRepositories",
+                    "ecr:DescribeImages",
+                    "ecr:BatchCheckLayerAvailability",
+                    "ecr:InitiateLayerUpload",
+                    "ecr:UploadLayerPart",
+                    "ecr:CompleteLayerUpload",
+                    "ecr:PutImage",
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer"
+                  ],
+                  "Resource": {
+                    "Fn::GetAtt": [
+                      "Repository",
+                      "Arn"
+                    ]
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "PublisherRoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "PublisherRole",
+          "Arn"
+        ]
+      }
+    },
+    "RepositoryUri": {
+      "Value": {
+        "Fn::GetAtt": [
+          "Repository",
+          "RepositoryUri"
+        ]
+      }
+    }
+  }
+}
