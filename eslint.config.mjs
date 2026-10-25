@@ -10,7 +10,10 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      "android/**",
+      "ios/**",
       "artifacts/native-review-harness/**",
+      "artifacts/companion-chat-harness/**",
       ".output/**",
       ".vercel/**",
       ".nitro/**",

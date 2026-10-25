@@ -1,0 +1,14 @@
+{
+  "appId": "au.kyrec.familyguardian",
+  "appName": "KYREC Family Guardian",
+  "webDir": "dist/mobile",
+  "backgroundColor": "#050318",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
