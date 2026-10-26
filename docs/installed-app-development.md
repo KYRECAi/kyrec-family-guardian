@@ -37,8 +37,10 @@ development screen says so. No fake user, fake verification or fake Core
 response is supplied. Existing browser/server behavior remains available for
 development; there is no website deployment in this change.
 
-Before enabling account entry, implement and verify the app-facing authenticated
-API transport and secure mobile session storage. Existing server functions and
+A source candidate for the app-facing authenticated API transport and iOS Keychain
+session storage is now included; see [native-auth-candidate.md](native-auth-candidate.md).
+Before enabling account entry, complete its native compilation, device, trust-boundary
+and UI integration verification. Existing server functions and
 cookie-based same-origin authentication cannot simply be pointed at Core from
 the phone. Privileged Core, AI-provider and database credentials must remain
 server-side. The service boundary is mobile app -> authenticated Guardian API

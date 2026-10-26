@@ -31,6 +31,7 @@ import { Route as StanRouteImport } from './routes/stan'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
+import { Route as ApiMobileRouteImport } from './routes/api/mobile'
 import { Route as CompanionsIndexRouteImport } from './routes/companions.index'
 import { Route as CompanionsIdRouteImport } from './routes/companions.$id'
 import { Route as GamesIndexRouteImport } from './routes/games.index'
@@ -148,6 +149,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
   path: '/api/health',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiMobileRoute = ApiMobileRouteImport.update({
+  id: '/api/mobile',
+  path: '/api/mobile',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CompanionsIndexRoute = CompanionsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -202,6 +208,7 @@ export interface FileRoutesByFullPath {
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mobile': typeof ApiMobileRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mobile': typeof ApiMobileRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
   '/api/health': typeof ApiHealthRoute
+  '/api/mobile': typeof ApiMobileRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
   '/talk/$id': typeof TalkIdRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/terms'
     | '/api/health'
+    | '/api/mobile'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
@@ -321,6 +331,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/terms'
     | '/api/health'
+    | '/api/mobile'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
@@ -351,6 +362,7 @@ export interface FileRouteTypes {
     | '/stats'
     | '/terms'
     | '/api/health'
+    | '/api/mobile'
     | '/companions/$id'
     | '/games/$id'
     | '/talk/$id'
@@ -382,6 +394,7 @@ export interface RootRouteChildren {
   StatsRoute: typeof StatsRoute
   TermsRoute: typeof TermsRoute
   ApiHealthRoute: typeof ApiHealthRoute
+  ApiMobileRoute: typeof ApiMobileRoute
   TalkIdRoute: typeof TalkIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
@@ -542,6 +555,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiHealthRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/mobile': {
+      id: '/api/mobile'
+      path: '/api/mobile'
+      fullPath: '/api/mobile'
+      preLoaderRoute: typeof ApiMobileRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/companions/': {
       id: '/companions/'
       path: '/'
@@ -636,6 +656,7 @@ const rootRouteChildren: RootRouteChildren = {
   StatsRoute: StatsRoute,
   TermsRoute: TermsRoute,
   ApiHealthRoute: ApiHealthRoute,
+  ApiMobileRoute: ApiMobileRoute,
   TalkIdRoute: TalkIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }

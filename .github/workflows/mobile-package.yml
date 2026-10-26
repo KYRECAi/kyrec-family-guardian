@@ -10,6 +10,7 @@ on:
       - "package*.json"
       - "vite.config.ts"
       - "src/**"
+      - "plugins/guardian-session/**"
       - "scripts/*mobile*"
       - ".github/workflows/mobile-package.yml"
 

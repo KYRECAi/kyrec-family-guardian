@@ -24,8 +24,8 @@ Integration preserves all source histories. Conflict resolution retains both the
 
 ## Remaining implementation and install prerequisites
 
-1. Implement authenticated Guardian mobile API transport and OS-protected session storage, including logout/revocation, expiry, account switching, restart and no-network behavior. Do not reuse service credentials or trust actor IDs supplied by the device. Keep mobile credential entry blocked until verified.
-2. Test verified session -> Guardian API -> intended Core in one synthetic flow; current auth and paired Core tests cover separate boundaries, not this complete chain.
+1. Native transport/session source is now implemented; see native-auth-candidate.md for test evidence and remaining Apple compilation, device, integration-UI and external-script gates. Keep mobile credential entry blocked until those pass.
+2. Verified session -> Guardian mobile API -> pinned local Core now passes in one synthetic flow for two adult accounts and a child, including cross-household denial and owner-only feature changes. OS storage/HTTP are not included in that synthetic proof.
 3. Decide whether a second adult can manage child access. Current canonical authority is adult household owner only; do not silently treat membership as parent authority.
 4. Preserve per-feature default-off choices separately from provider/memory permissions and individual goal approval. Child AI and location-sharing holds remain.
 5. For Apple compilation use the existing project path and its Xcode requirements. Actual iPhone/iPad installation needs an approved signing/provisioning and distribution path, owner-controlled bundle identity `au.kyrec.familyguardian`, and physical-device acceptance. Current CI workflow produces unsigned simulator output only. No enrollment, credentials or spending performed.
