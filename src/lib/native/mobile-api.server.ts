@@ -65,7 +65,10 @@ export async function mobileApi(request: Request, auth: AuthHandler, core = core
   try {
     if (input.action === "logout") {
       const result = await authRequest("sign-out", "POST", {});
-      return reply(result.ok ? 200 : 401, { revoked: result.ok });
+      if (result.ok) return reply(200, { revoked: true });
+      return reply(result.status === 401 ? 401 : result.status === 429 ? 429 : 503, {
+        revoked: false,
+      });
     }
     if (input.action === "login") {
       const result = await authRequest("sign-in/email", "POST", {
@@ -91,6 +94,10 @@ export async function mobileApi(request: Request, auth: AuthHandler, core = core
       );
     }
     const checked = await authRequest("get-session", "GET");
+    if (!checked.ok)
+      return reply(checked.status === 401 ? 401 : checked.status === 429 ? 429 : 503, {
+        error: "Session unavailable",
+      });
     const parsed = sessionSchema.safeParse(await checked.json());
     if (!checked.ok || !parsed.success || parsed.data.session.expiresAt.getTime() <= Date.now())
       return reply(401, { error: "Session expired" });

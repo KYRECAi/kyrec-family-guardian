@@ -208,8 +208,11 @@ export function readGrokProjectId() {
 }
 
 export function readGrokExtensionsEnabled() {
-  const fromProcess = typeof process !== "undefined" ? process.env?.VITE_GROK_EXTENSIONS : "";
-  return String(fromProcess ?? "").trim() !== "0";
+  const env = typeof process !== "undefined" ? process.env : {};
+  // Family authentication/native sessions cannot share their JS realm with
+  // remotely mutable platform chrome. Auth defaults on, matching auth/client.ts.
+  if (env?.VITE_AUTH_ENABLED !== "false" || env?.GUARDIAN_MOBILE_BUILD === "1") return false;
+  return String(env?.VITE_GROK_EXTENSIONS ?? "").trim() !== "0";
 }
 
 export function readXCreator() {

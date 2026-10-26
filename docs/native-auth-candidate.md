@@ -20,17 +20,17 @@ Capacitor generation discovers GuardianSessionPlugin and includes the local Swif
 
 ## Verification
 
-- Six targeted tests pass: actual Better Auth bearer gateway with PGlite/intercepted verification mail; forged/missing/unverified sessions; input actor injection, Origin/Cookie rejection, logout replay; session rotation/restart, expiry, identity changes, offline revocation, stale in-flight responses and storage failure.
+- Ten targeted tests pass: actual Better Auth bearer gateway with PGlite/intercepted verification mail; forged/missing/unverified sessions; input actor injection, Origin/Cookie rejection, logout replay; session rotation/restart, expiry, identity changes, offline revocation, stale in-flight responses and storage failure.
 - Paired test uses actual Better Auth sessions, the actual gateway handler and HTTP requests to Core `503bd089daadbf6929937300003fc397c31239aa`. Two synthetic adults and a synthetic child: household isolation, child self-grant rejected, owner grant succeeds, unrelated household read rejected, and logout is independent.
 - Session storage and native HTTP are injected synthetic implementations in those tests. They do not prove Keychain or OS transport.
-- Full suite: 290 passed, five existing skips. Type check, lint (four existing warnings), web/mobile builds and iOS generation pass. No Xcode compilation claimed.
-- Isolated bundled account-screen smoke remains blocked for credential entry and passes phone/iPad/desktop, with external resources stubbed explicitly. Unmocked external-resource smoke remains a known network failure from the preceding milestone.
+- Full suite: 297 passed, five existing skips. Type check, lint (four existing warnings), web/mobile builds and iOS generation pass. No Xcode compilation claimed.
+- Bundled account-screen smoke remains blocked for credential entry and now passes phone/iPad/desktop without external-resource mocks; local fonts and extension removal repair the prior network dependency. Separate malicious-script probes verify the CSP. See native-security-review.md.
 
 ## Remaining concrete acceptance gates
 
 1. On a Mac, compile the generated unsigned iOS project and plugin; test Keychain read/update/delete, locked-device failures, process termination during logout, reinstall behavior, and disabled iCloud/device migration. Review signed device build separately.
 2. Exercise CapacitorHttp against an isolated test server: redirect denial, cookies absent, TLS failure, timeouts, malformed responses, server expiry/revocation and account changes. The app must never show the old household after identity change.
-3. The bundled platform branding extension is third-party executable code. Before exposing real sessions, decide an approved native trust boundary: a platform-approved configuration without remote executable content, or an isolated native account surface with a reviewed restrictive resource policy. This change does not silently remove required platform branding. HTTPS transport and Keychain do not solve hostile in-process scripts.
+3. Authenticated/native output now excludes the remote platform extension, retaining static attribution, and mobile CSP excludes remote executable code. Actual WKWebView/Keychain enforcement still needs device proof. Web Google Maps remains a separate intentional executable dependency; native Maps must receive a separately reviewed renderer. See native-security-review.md.
 4. Wire the verified native session to the account/household UI only after the preceding gates. Present pending logout truthfully and clear user-specific visible state when identity changes. Existing server-function calls cannot be assumed to work on device; this endpoint currently supports household list/shop read and child-access read/save only. Other operations remain unavailable until explicitly adapted and tested.
 5. Apple signing/provisioning and an owner-approved installation channel are still required for physical iPhone/iPad acceptance. No enrollment, credentials, paid services, deployment or activation performed.
 

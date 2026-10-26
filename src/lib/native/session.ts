@@ -33,6 +33,7 @@ export type NativeTransport = (body: object, token?: string) => Promise<NativeRe
 export class NativeSession {
   private queue: Promise<unknown> = Promise.resolve();
   private epoch = 0;
+  private accessBlocked = false;
   constructor(
     private store: SecureStore,
     private transport: NativeTransport,
@@ -63,6 +64,7 @@ export class NativeSession {
   }
   login(email: string, password: string) {
     const epoch = ++this.epoch;
+    this.accessBlocked = true;
     return this.serial(async () => {
       const previous = await this.record();
       if (previous) await this.revoke(previous);
@@ -88,18 +90,21 @@ export class NativeSession {
         await this.revoke(next);
         throw new Error("Identity changed");
       }
+      this.accessBlocked = false;
       return value.user;
     });
   }
   refresh() {
     const epoch = this.epoch;
     return this.serial(async () => {
+      if (epoch !== this.epoch) throw new Error("Identity changed");
       const record = await this.record();
       if (!record) return null;
       if (record.pendingLogout) {
         await this.revoke(record);
         return null;
       }
+      if (this.accessBlocked || epoch !== this.epoch) throw new Error("Session locked");
       if (Date.parse(record.expiresAt) <= this.now()) {
         await this.store.clear();
         return null;
@@ -125,6 +130,7 @@ export class NativeSession {
           }),
         ),
       );
+      if (epoch !== this.epoch || this.accessBlocked) throw new Error("Identity changed");
       return value.user;
     });
   }
@@ -135,9 +141,11 @@ export class NativeSession {
       const action = (body as { action?: string }).action;
       if (!["households", "shop", "child_access", "save_child_access"].includes(action ?? ""))
         throw new Error("Unsupported operation");
+      if (this.accessBlocked || epoch !== this.epoch) throw new Error("Session locked");
       const record = await this.record();
       if (!record || record.pendingLogout || Date.parse(record.expiresAt) <= this.now())
         throw new Error("Sign in required");
+      if (this.accessBlocked || epoch !== this.epoch) throw new Error("Identity changed");
       const result = await this.transport(body, record.token);
       if (result.status === 401) await this.store.clear();
       if (epoch !== this.epoch) throw new Error("Identity changed");
@@ -148,6 +156,7 @@ export class NativeSession {
   }
   logout() {
     ++this.epoch; // In-flight UI replies become unusable immediately.
+    this.accessBlocked = true; // Even a failed Keychain write cannot re-enable this process.
     return this.serial(async () => {
       const record = await this.record();
       if (record) await this.revoke(record);

@@ -253,7 +253,7 @@ try {
     );
     await actors[2].client.logout();
     await actors[0].client.logout();
-    await assert.rejects(actors[0].client.request({ action: "households" }), /Sign in/);
+    await assert.rejects(actors[0].client.request({ action: "households" }), /Sign in|Session locked/);
     assert.ok(await actors[1].client.refresh());
     await actors[1].client.logout();
     console.log(

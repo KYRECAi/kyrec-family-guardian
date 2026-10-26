@@ -63,6 +63,9 @@ export const Route = createRootRoute({
         <AuthProvider>
           <FamilyContent />
         </AuthProvider>
+        {(isMobilePackage || import.meta.env.VITE_AUTH_ENABLED !== "false") && (
+          <footer className="px-4 py-2 text-center text-xs text-muted">Created with Grok</footer>
+        )}
         <Scripts />
       </body>
     </html>

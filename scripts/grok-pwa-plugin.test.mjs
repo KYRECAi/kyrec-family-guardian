@@ -19,6 +19,9 @@ import {
 } from "./grok-pwa-shared.mjs";
 import { renderInstallPage } from "./grok-pwa-plugin.mjs";
 
+// Legacy unauthenticated template mode only; family mode has separate security tests.
+process.env.VITE_AUTH_ENABLED = "false";
+
 // Template helper tests use an empty workspace, not this product's share card.
 const EMPTY_WORKSPACE = mkdtempSync(join(tmpdir(), "pwa-fixture-"));
 const injectGrokPwaHead = (html, ctx = {}) => injectHead(html, { cwd: EMPTY_WORKSPACE, ...ctx });

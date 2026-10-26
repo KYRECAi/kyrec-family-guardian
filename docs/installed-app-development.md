@@ -59,8 +59,8 @@ Automatic routed intelligence and native session transport remain separate work.
 The GitHub workflow builds a debug Android APK and an unsigned iOS simulator
 app. Neither job deploys AWS resources, a website or an app-store release.
 
-The existing Grok branding extension remains in the generated HTML under the
-repository's platform instructions. Review that external-script dependency and
-the platform branding settings before enabling real-family sessions. CI debug
+The native bundle now uses static platform attribution and excludes the remote
+branding extension; see native-security-review.md for the script policy and its
+remaining WKWebView acceptance checks. CI debug
 signing is temporary; release signing and reliable installed-app upgrades need
 the owner's persistent signing configuration.

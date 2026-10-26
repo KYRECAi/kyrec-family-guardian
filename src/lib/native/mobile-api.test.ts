@@ -102,3 +102,22 @@ test("native gateway verifies bearer, email, logout, actor and strict household 
     await db.close();
   }
 });
+
+test("auth outage/rate-limit cannot masquerade as successful revocation or expiry", async () => {
+  for (const action of ["logout", "session"]) {
+    for (const status of [429, 500, 503]) {
+      const response = await mobileApi(
+        new Request("https://guardian.example.test/api/mobile", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer synthetic-token-0000000000000",
+          },
+          body: JSON.stringify({ action }),
+        }),
+        async () => Response.json({ error: "unavailable" }, { status }),
+      );
+      assert.equal(response.status, status === 429 ? 429 : 503);
+    }
+  }
+});

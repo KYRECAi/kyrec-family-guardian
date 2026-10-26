@@ -129,3 +129,79 @@ test("storage failure never reports successful login; unsupported operations den
   assert.equal(revoked, true);
   await assert.rejects(client.request({ action: "login" }), /Unsupported/);
 });
+
+test("queued mutation is cancelled before transport on logout intent", async () => {
+  let release!: () => void;
+  let started!: () => void;
+  const pending = new Promise<void>((r) => {
+    release = r;
+  });
+  const entered = new Promise<void>((r) => {
+    started = r;
+  });
+  const sent: string[] = [];
+  const h = harness(async (body) => {
+    const action = (body as { action: string }).action;
+    sent.push(action);
+    if (action === "households") {
+      started();
+      await pending;
+    }
+    return { status: 200, data: data(), token };
+  });
+  await h.client.login("a@example.test", "synthetic");
+  const first = h.client.request({ action: "households" });
+  await entered;
+  const mutation = h.client.request({ action: "save_child_access" });
+  const logout = h.client.logout();
+  release();
+  await assert.rejects(first);
+  await assert.rejects(mutation);
+  await logout;
+  assert.deepEqual(sent, ["login", "households", "logout"]);
+});
+
+test("failed logout storage write locks subsequent access; backend failure retains tombstone", async () => {
+  const h = harness(async () => ({ status: 200, data: data(), token }));
+  await h.client.login("a@example.test", "synthetic");
+  const original = h.store.write;
+  h.store.write = async () => {
+    throw new Error("Keychain locked");
+  };
+  await assert.rejects(h.client.logout());
+  await assert.rejects(h.client.request({ action: "households" }), /locked/);
+  await assert.rejects(h.client.refresh(), /locked/);
+  h.store.write = original;
+  const restarted = new NativeSession(h.store, async () => ({ status: 503, data: {} }));
+  await assert.rejects(restarted.logout(), /pending/);
+  assert.equal(JSON.parse(h.value()!).pendingLogout, true);
+});
+
+test("logout during refresh storage write cannot return the prior identity", async () => {
+  const h = harness(async () => ({ status: 200, data: data(), token }));
+  await h.client.login("a@example.test", "synthetic");
+  let release!: () => void;
+  let entered!: () => void;
+  const started = new Promise<void>((r) => {
+    entered = r;
+  });
+  const pending = new Promise<void>((r) => {
+    release = r;
+  });
+  const write = h.store.write;
+  let first = true;
+  h.store.write = async (s) => {
+    if (first) {
+      first = false;
+      entered();
+      await pending;
+    }
+    await write(s);
+  };
+  const refresh = h.client.refresh();
+  await started;
+  const logout = h.client.logout();
+  release();
+  await assert.rejects(refresh, /Identity changed/);
+  await logout;
+});

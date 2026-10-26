@@ -17,7 +17,22 @@ public class GuardianSessionPlugin: CAPPlugin, CAPBridgedPlugin {
         kSecAttrAccount as String: "current-session",
         kSecAttrSynchronizable as String: false
     ] }
+    // Defense in depth against navigation. Frame provenance is not supplied by
+    // Capacitor, so this does NOT replace the bundled no-remote-script policy.
+    private func trustedDocument(_ call: CAPPluginCall) -> Bool {
+        let check = { () -> Bool in
+            guard let url = self.webView?.url else { return false }
+            return url.scheme == "capacitor" && url.host == "localhost" &&
+                url.user == nil && url.password == nil && url.port == nil
+        }
+        let trusted = Thread.isMainThread ? check() : DispatchQueue.main.sync(execute: check)
+        guard trusted else {
+            call.reject("Untrusted session document"); return false
+        }
+        return true
+    }
     @objc func read(_ call: CAPPluginCall) {
+        guard trustedDocument(call) else { return }
         var attributes = query
         attributes[kSecReturnData as String] = true
         attributes[kSecMatchLimit as String] = kSecMatchLimitOne
@@ -31,6 +46,7 @@ public class GuardianSessionPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve(["value": value])
     }
     @objc func write(_ call: CAPPluginCall) {
+        guard trustedDocument(call) else { return }
         guard let value = call.getString("value"), let data = value.data(using: .utf8),
               data.count <= 16384 else { call.reject("Invalid secure session"); return }
         let changes: [String: Any] = [
@@ -47,6 +63,7 @@ public class GuardianSessionPlugin: CAPPlugin, CAPBridgedPlugin {
         call.resolve()
     }
     @objc func clear(_ call: CAPPluginCall) {
+        guard trustedDocument(call) else { return }
         let status = SecItemDelete(query as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else {
             call.reject("Secure session removal failed"); return

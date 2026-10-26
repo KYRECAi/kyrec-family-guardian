@@ -10,6 +10,7 @@ import {
 } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { secureMobileHtml } from "./mobile-trust-policy.mjs";
 import { renderWebManifest } from "./grok-pwa-shared.mjs";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -65,6 +66,8 @@ function verifyAssets(directory) {
     const path = join(directory, entry.name);
     if (entry.isSymbolicLink()) throw new Error("Symlinks must not enter the mobile bundle.");
     if (entry.isDirectory()) verifyAssets(path);
+    if (entry.isFile() && entry.name.endsWith(".html"))
+      writeFileSync(path, secureMobileHtml(readFileSync(path, "utf8")));
     if (/^\.env(?:\.|$)|\.sqlite$|\.pem$|\.key$|\.map$/i.test(entry.name)) {
       throw new Error(`Server-only or debug file entered the mobile bundle: ${entry.name}`);
     }
