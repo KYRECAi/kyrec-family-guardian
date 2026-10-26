@@ -27,3 +27,13 @@ A new current-head run requires a separately authorised workflow-trigger change 
 - Approved non-live Guardian endpoint with trusted client-address rules and pinned Core version, after security gates pass.
 
 Only then record signed install/restart/upgrade/background/offline/logout acceptance on both physical device types. Simulator compilation alone is insufficient. Nothing here authorises live-family provisioning or release.
+
+## Smaller proposed one-run verification (not triggered)
+
+Rather than enabling both existing jobs on every integration-branch push, propose a dedicated verification branch `verify/guardian-native-ios-once` carrying one narrowly scoped workflow. It checks out the exact reviewed integration commit, runs only the existing unsigned iOS preparation/compile steps on standard `macos-latest`, and has one job with `timeout-minutes: 25`. No matrix, automatic retries, Android job, artifact upload or dependency cache. Permissions: contents read; checkout credential persistence off. Only the single approved branch push triggers it; no main merge or PR publication. No further pushes/reruns without approval. A concrete YAML draft is supplied in the task handoff, not installed under .github/workflows.
+
+Official pricing checked 27 October 2026 Perth: standard macOS is USD 0.062/minute, minutes rounded up per job. 25 minutes equals USD 1.55 nominal runner compute before any included quota/tax. Proposed approval ceiling: USD 2 for this one attempt, no retries. This is an operational limit/estimate, not a configured GitHub account billing cap; none was changed. If a guaranteed invoice cap is required, verify account budget enforcement first. No artifact/cache storage is requested. Repository plan, privacy/included minutes balance and account-specific billing terms were not available, so free execution is not assumed.
+
+Sources: https://docs.github.com/en/billing/reference/actions-runner-pricing and https://docs.github.com/en/billing/concepts/product-billing/github-actions.
+
+Smallest owner inputs for a later physical trial: (1) whether an existing Apple team/development-signing route is available, or TestFlight is preferred; (2) which test iPhone/iPad and OS versions. Do not send passwords/private keys in chat. TestFlight/enrollment costs and real accounts are not authorised by unsigned compilation approval.

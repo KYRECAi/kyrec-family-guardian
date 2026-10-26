@@ -11,7 +11,24 @@ export const Route = createFileRoute("/api/mobile")({
         requireProductionIdentityConfiguration();
         const { auth } = await import("@/lib/auth/server");
         const { mobileApi } = await import("@/lib/native/mobile-api.server");
-        return mobileApi(request, (req) => auth.handler(req));
+        const { getRequestIP } = await import("@tanstack/react-start/server");
+        const { nativeAuthWithAddress } = await import("@/lib/native/client-address.server");
+        try {
+          const verifiedAuth = nativeAuthWithAddress(
+            (req) => auth.handler(req),
+            request,
+            getRequestIP({ xForwardedFor: false }),
+          );
+          return mobileApi(request, verifiedAuth);
+        } catch {
+          return Response.json(
+            { error: "Native account connection unavailable" },
+            {
+              status: 503,
+              headers: { "Cache-Control": "no-store" },
+            },
+          );
+        }
       },
     },
   },

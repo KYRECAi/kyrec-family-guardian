@@ -1,0 +1,11 @@
+# Synthetic FIFO story and reply trial
+
+This is a memory-only prototype, not a production messaging service, installed-device acceptance or a separate children's app decision. It is not mounted on a production route and does not connect to account, Core, provider, email or notification APIs. Reload resets the fixture; do not enter private family data.
+
+`FifoStoryTrial` is an injected-API React surface. The harness under `scripts/fifo-story-browser.mjs` uses `scripts/fixtures/fifo-story-store.ts` with Test Child/Test Parent identities. Role-switch buttons belong only to the labelled synthetic harness; they are not an account authentication mechanism.
+
+The child initially sees access off. The synthetic parent explicitly enables this trial; the child chooses an additive scripted Pulse routine/coordination prompt or Moneybags saving prompt, writes a bounded story and draws using pointer input. Saving creates a waiting entry with no parent reply. Only a manually entered reply from the synthetic parent appears later as `From Test Parent`, explicitly labelled as submitted in the trial. No AI text is generated as a parent, and no call, delivery, shift detection or notification is claimed.
+
+Tests cover default-off, child self-grant denial, child impersonation attempt, wrong-household fixture denial, immutable returned snapshots, duplicate reply refusal, malformed/out-of-bounds drawing input, and access revocation. Built-browser tests at 1024px and 390px exercise the actual drawing, parent typing/submission, child viewing the attributed reply, and revocation with no account/provider API requests. Screenshots were visually inspected.
+
+Two fixture tests pass. These fixture boundaries are deliberately simulated; they do not prove real household authorization or durable delivery. Before any real-user integration, implement the narrow Core-owned durable story/reply contract using verified identities, explicit recipient/household scope, canonical parent-control gates, retention/deletion/revocation policy, and same-session authority checks. The existing eight feature choices and owner-only production policy were not changed. A trial checkbox does not grant provider, memory, location, chat or reward permissions.

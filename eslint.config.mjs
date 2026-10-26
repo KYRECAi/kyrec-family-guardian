@@ -13,6 +13,7 @@ export default tseslint.config(
       "android/**",
       "ios/**",
       "artifacts/child-access-harness/**",
+      "artifacts/fifo-story-harness/**",
       "artifacts/native-review-harness/**",
       "artifacts/companion-chat-harness/**",
       ".output/**",

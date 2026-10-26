@@ -33,7 +33,7 @@ Real bundled-browser attack probes attempt remote code, arbitrary inline code, i
 
 ## Remaining precise gates
 
-- The gateway's reconstructed auth request has no trusted client-IP context. Better Auth therefore shares a per-path rate-limit bucket; production sign-in limit is five attempts/minute. Do not enable native login until the deployment's trusted proxy/client-address contract is selected and tested. Do not forward arbitrary client-supplied `X-Forwarded-For` as a shortcut. Existing throttling stays in place meanwhile.
+- Client-address resolution now has explicit direct/single-proxy modes and a conservative development bucket; production unset policy fails closed. Independent review and actual throttling tests pass. Deployment still must prove runtime peer provenance and proxy overwrite behavior before activation; see native-client-address.md.
 - Native UI integration still disabled; Android secure-session adapter not implemented.
 - Apple verification checklist and CI execution conditions: apple-native-verification.md.
 - No activation, real accounts, external publication retry, credentials or deployment performed.
