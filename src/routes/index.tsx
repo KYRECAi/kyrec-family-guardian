@@ -9,6 +9,8 @@ import { type MemberId } from "@/lib/family";
 import { useHouseholdMotion } from "@/lib/presence";
 import { useGuardian, type Mood } from "@/lib/store";
 import { usePeople } from "@/lib/people";
+import { useHousehold } from "@/lib/household-context";
+import { ChildHome } from "@/components/child-feature-gate";
 
 export const Route = createFileRoute("/")({ component: Home });
 
@@ -20,6 +22,7 @@ const FEELINGS = [
 ] as const;
 
 function Home() {
+  const { snapshot } = useHousehold();
   const sharing = useGuardian((s) => s.sharing);
   const paused = useGuardian((s) => s.locationPaused);
   const noteVisit = useGuardian((s) => s.noteVisit);
@@ -38,6 +41,8 @@ function Home() {
   useEffect(() => {
     noteVisit();
   }, [noteVisit]);
+
+  if (snapshot?.member_role === "child") return <ChildHome />;
 
   return (
     <div className="relative -mx-4 min-h-[calc(100dvh-6.5rem)] overflow-hidden pb-8">

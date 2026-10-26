@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { featuresSchema, allFeatures } from "./child-feature-contract.ts";
 
 export const memberSchema = z.object({
   user_id: z.string(),
@@ -14,6 +15,7 @@ export const shopSchema = z.object({
   snatch_on: z.boolean(),
   is_owner: z.boolean(),
   member_role: z.enum(["adult", "child", "guest"]),
+  feature_access: featuresSchema.default(() => allFeatures(false)),
   members: z.array(memberSchema),
   presets: z.array(
     z.object({

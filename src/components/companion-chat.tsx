@@ -84,6 +84,9 @@ export function CompanionChat({
     setBusy(false);
   }
 
+  if (snapshot?.member_role === "child" && (!snapshot.feature_access.chat || !snapshot.feature_access[id]))
+    return <p className="rounded-xl bg-panel p-4 text-sm text-muted">Chat is switched off by your parent. In immediate danger in Australia, call 000.</p>;
+
   const body = (
     <>
       <div className="flex items-center justify-between gap-2">

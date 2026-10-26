@@ -10,6 +10,8 @@ import { usePeople } from "@/lib/people";
 import { avatarSrc } from "@/lib/avatars";
 import { useGuardian } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { useHousehold } from "@/lib/household-context";
+import { canOpenFeatureRoute } from "@/lib/child-feature-contract";
 
 const TABS = [
   { to: "/", label: "Home", icon: House, tone: "bg-pink text-paper", idle: "text-pink" },
@@ -37,6 +39,8 @@ const MORE = [
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
+  const { snapshot } = useHousehold();
+  const available = (path: string) => Boolean(snapshot && canOpenFeatureRoute(path, snapshot.member_role, snapshot.feature_access));
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const isGame = pathname.startsWith("/games/") && pathname !== "/games";
   const immersive = pathname === "/map";
@@ -94,7 +98,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav
             className={cn("flex flex-1 flex-col gap-1", immersive ? "mt-6 items-center" : "mt-8")}
           >
-            {TABS.map((tab) => (
+            {TABS.filter(tab => available(tab.to)).map((tab) => (
               <NavLink
                 key={tab.to}
                 to={tab.to}
@@ -108,7 +112,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             ))}
             {immersive
               ? null
-              : MORE.map((item) => (
+              : MORE.filter(item => available(item.to)).map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
@@ -206,8 +210,8 @@ export function AppShell({ children }: { children: ReactNode }) {
       </div>
 
       <nav className="fixed inset-x-3 bottom-3 z-30 rounded-2xl bg-panel/92 pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-lift)] backdrop-blur-md lg:hidden">
-        <div className="grid grid-cols-6 px-0.5 pt-1">
-          {TABS.map((tab) => {
+        <div className="grid grid-flow-col auto-cols-fr px-0.5 pt-1">
+          {TABS.filter(tab => available(tab.to)).map((tab) => {
             const Icon = tab.icon;
             const active = tab.to === "/" ? pathname === "/" : pathname.startsWith(tab.to);
             return (
@@ -262,7 +266,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             </div>
             <div className="grid gap-2">
-              {MORE.map((item, i) => {
+              {MORE.filter(item => available(item.to)).map((item, i) => {
                 const tone =
                   [
                     "text-pink",

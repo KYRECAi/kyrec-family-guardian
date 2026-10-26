@@ -6,6 +6,7 @@ import { HouseholdProvider, useHousehold } from "@/lib/household-context";
 import { createHousehold, joinHousehold } from "@/lib/shared-household";
 import { activatePersonalStore, useGuardian } from "@/lib/store";
 import { AppShell } from "./app-shell";
+import { ChildFeatureGate } from "./child-feature-gate";
 
 const field = "mt-2 h-12 w-full rounded-xl border border-line bg-panel px-3 text-base";
 const button =
@@ -398,7 +399,7 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
   return (
     <HouseholdProvider>
       <HouseholdGate>
-        <AppShell>{children}</AppShell>
+        <AppShell><ChildFeatureGate>{children}</ChildFeatureGate></AppShell>
       </HouseholdGate>
     </HouseholdProvider>
   );

@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
+import { ChildAccessSettings } from "@/components/child-access-settings";
 import { toast } from "sonner";
 import { MemberAvatar } from "@/components/member-avatar";
 import { Button } from "@/components/ui/button";
@@ -33,7 +34,9 @@ function SettingsPage() {
     <div className="mx-auto max-w-lg py-4">
       <p className="text-[11px] font-semibold tracking-[0.16em] text-violet uppercase">Account</p>
       <h1 className="mt-1 text-2xl font-semibold">Settings</h1>
-      <p className="mt-1 text-sm text-muted">Your preferences on this device</p>
+      <p className="mt-1 text-sm text-muted">Your preferences and family access</p>
+
+      <ChildAccessSettings />
 
       <section className="mt-5 rounded-3xl bg-panel p-4 shadow-[var(--shadow-border)]">
         <h2 className="font-semibold">Colour</h2>
