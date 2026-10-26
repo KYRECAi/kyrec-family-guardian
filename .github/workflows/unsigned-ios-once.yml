@@ -1,0 +1,61 @@
+name: Guardian unsigned iOS verification once
+on:
+  push:
+    branches: [verify/guardian-native-ios-once]
+permissions:
+  contents: read
+jobs:
+  unsigned-ios:
+    if: github.run_attempt == 1
+    runs-on: macos-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          ref: b7bd59e9fa5dd46d2152e773b51265fd1a53b1ae
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - name: Verify pinned source and tracked Swift implementation
+        run: |
+          test "$(git rev-parse HEAD)" = b7bd59e9fa5dd46d2152e773b51265fd1a53b1ae
+          git ls-files --error-unmatch plugins/guardian-session/ios/Sources/GuardianSessionPlugin/GuardianSessionPlugin.swift
+          git rev-parse HEAD
+      - run: npm ci
+      - run: npm run build:mobile
+      - run: npm run mobile:prepare -- ios
+      - name: Verify plugin registration and app dependency graph
+        run: |
+          python3 - <<'PYVERIFY'
+          import json
+          from pathlib import Path
+          config = json.loads(Path('ios/App/App/capacitor.config.json').read_text())
+          assert 'GuardianSessionPlugin' in config['packageClassList']
+          graph = Path('ios/App/CapApp-SPM/Package.swift').read_text()
+          assert '.product(name: "KyrecGuardianSession", package: "KyrecGuardianSession")' in graph
+          assert 'CapApp-SPM in Frameworks' in Path('ios/App/App.xcodeproj/project.pbxproj').read_text()
+          assert 'ios/Sources/GuardianSessionPlugin' in Path('plugins/guardian-session/Package.swift').read_text()
+          print('Verified new plugin source, registration, and app dependency graph')
+          PYVERIFY
+      - name: Compile unsigned simulator app
+        run: |
+          xcodebuild -version
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath artifacts/ios-build CODE_SIGNING_ALLOWED=NO build
+      - name: Verify compiled plugin is linked into the simulator app
+        run: |
+          python3 - <<'PYVERIFY'
+          import subprocess
+          from pathlib import Path
+          root = Path('artifacts/ios-build')
+          assert list(root.rglob('GuardianSessionPlugin.swiftmodule')), 'No compiled plugin module'
+          app = root / 'Build/Products/Debug-iphonesimulator/App.app'
+          symbols = ''
+          for name in ('App', 'App.debug.dylib'):
+              binary = app / name
+              if binary.exists():
+                  symbols += subprocess.check_output(['nm', '-gU', str(binary)], text=True)
+          assert 'GuardianSessionPlugin' in symbols, 'Compiled plugin not linked into app'
+          print('Verified compiled GuardianSessionPlugin module and defined symbol in app binary')
+          PYVERIFY
