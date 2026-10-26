@@ -14,6 +14,7 @@ export default tseslint.config(
       "ios/**",
       "artifacts/child-access-harness/**",
       "artifacts/fifo-story-harness/**",
+      "artifacts/valentine-disposition/**",
       "artifacts/native-review-harness/**",
       "artifacts/companion-chat-harness/**",
       ".output/**",

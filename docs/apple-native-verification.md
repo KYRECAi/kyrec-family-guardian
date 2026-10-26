@@ -1,6 +1,6 @@
 # Minimal Apple verification gate
 
-No paid service, Apple enrollment, credential setup or CI execution authorised by this checklist.
+This checklist does not authorise Apple enrollment, credentials, deployment or additional CI. The separately approved single compile below is complete.
 
 ## Existing infrastructure inspected read-only
 
@@ -28,7 +28,7 @@ A new current-head run requires a separately authorised workflow-trigger change 
 
 Only then record signed install/restart/upgrade/background/offline/logout acceptance on both physical device types. Simulator compilation alone is insufficient. Nothing here authorises live-family provisioning or release.
 
-## Smaller proposed one-run verification (not triggered)
+## Historical one-run proposal (subsequently approved and completed below)
 
 Rather than enabling both existing jobs on every integration-branch push, propose a dedicated verification branch `verify/guardian-native-ios-once` carrying one narrowly scoped workflow. It checks out the exact reviewed integration commit, runs only the existing unsigned iOS preparation/compile steps on standard `macos-latest`, and has one job with `timeout-minutes: 25`. No matrix, automatic retries, Android job, artifact upload or dependency cache. Permissions: contents read; checkout credential persistence off. Only the single approved branch push triggers it; no main merge or PR publication. No further pushes/reruns without approval. A concrete YAML draft is supplied in the task handoff, not installed under .github/workflows.
 
@@ -37,3 +37,11 @@ Official pricing checked 27 October 2026 Perth: standard macOS is USD 0.062/minu
 Sources: https://docs.github.com/en/billing/reference/actions-runner-pricing and https://docs.github.com/en/billing/concepts/product-billing/github-actions.
 
 Smallest owner inputs for a later physical trial: (1) whether an existing Apple team/development-signing route is available, or TestFlight is preferred; (2) which test iPhone/iPad and OS versions. Do not send passwords/private keys in chat. TestFlight/enrollment costs and real accounts are not authorised by unsigned compilation approval.
+
+## Completed approved verification
+
+Michael approved the precise one-job, 25-minute, USD 2 maximum attempt on 26 October 2026 at 22:30:35 UTC. Workflow commit `91c4f22e9f7945f85f9f3bb9d3493a055b4ec097` on `verify/guardian-native-ios-once` was pushed once at 22:32:58 UTC, checking out source `b7bd59e9fa5dd46d2152e773b51265fd1a53b1ae`. [Run 40413281556](https://github.com/KYRECAi/kyrec-family-guardian/actions/runs/40413281556), attempt 1, succeeded. The single standard macOS job ran 22:33:01–22:35:07 UTC (126 seconds); workflow terminal update 22:35:08 UTC. No retry, artifact upload, cache, signing credentials or deployment. Do not push the verification branch or rerun without new approval.
+
+Xcode 26.6 compiled GuardianSessionPlugin.swift for arm64 and x86_64 simulator architectures. Registration/dependency checks passed, and a post-build check found the compiled Swift module and defined GuardianSessionPlugin symbols in the app binary. Compiler output had no errors; AppIntents metadata extraction warned because there is no AppIntents.framework dependency. This proves compilation/linking, not runtime Keychain, native HTTP, WKWebView or physical-device acceptance.
+
+Before triggering, GitHub reported this repository as public (despite its description saying private). Standard hosted runners on public repositories are free under the official Actions billing policy linked above. Expected incremental charge USD 0, including tax on zero; invoice not accessed and no account budget changed. The earlier unknown-visibility private-minute estimate is historical. No real family data was included.

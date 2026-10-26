@@ -64,7 +64,7 @@ try {
       : {}),
   });
   for (const mode of ["development", "production"])
-    for (const width of [390, 1440]) {
+    for (const width of [390, 1024, 1440]) {
       const context = await browser.newContext({ viewport: { width, height: 900 } });
       const page = await context.newPage();
       const errors = [];

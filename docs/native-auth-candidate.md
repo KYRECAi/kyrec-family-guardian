@@ -16,7 +16,7 @@ The session controller serializes operations. Logout immediately invalidates in-
 
 The local Capacitor plugin `@kyrec/guardian-session` has actual Swift Security-framework Keychain source, uses `WhenUnlockedThisDeviceOnly`, excludes iCloud synchronization, and exposes only one fixed session record. Atomic item update avoids delete/write gaps. No browser/Preferences fallback exists. The TypeScript iOS adapter refuses non-iOS and unavailable-plugin execution. Records are bound to the HTTPS Guardian origin; requests reject redirects and use bounded timeouts. Tokens exist transiently in the JS process to attach to native HTTP requests; they are not written to browser storage. This is not protection from arbitrary script execution inside the app.
 
-Capacitor generation discovers GuardianSessionPlugin and includes the local Swift package with matching product name. Linux cannot compile the Security/UIKit/Capacitor Swift implementation here. Android secure storage is not implemented; Android remains sign-in blocked.
+Capacitor generation discovers GuardianSessionPlugin and includes the local Swift package with matching product name. The one approved macOS CI run 40413281556 compiled and linked this plugin at source b7bd59e using Xcode 26.6 for both simulator architectures; see apple-native-verification.md. Native runtime and physical-device acceptance remain outstanding. Android secure storage is not implemented; Android remains sign-in blocked.
 
 ## Verification
 
