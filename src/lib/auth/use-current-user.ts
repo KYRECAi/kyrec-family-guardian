@@ -1,4 +1,5 @@
 import { authClient, authEnabled } from "./client";
+import { isMobilePackage } from "../mobile";
 
 /** Normalized user shape used across the app, auth on or off. */
 export type AppUser = {
@@ -57,8 +58,9 @@ export type CurrentUserState = {
  * call keeps a stable hook order across every render of a given component.
  */
 export function useCurrentUserState(): CurrentUserState {
+  if (isMobilePackage) return { user: null, isPending: false };
   if (!authEnabled) return { user: DEV_USER, isPending: false };
-  // eslint-disable-next-line react-hooks/rules-of-hooks -- authEnabled is constant for the app's lifetime
+  // Build flags are constant for the app's lifetime, so hook order is stable.
   const { data, isPending } = authClient.useSession();
   const user = data?.user;
   return {

@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useMatches } from "@tanstack/react-router";
 import { authClient, signOut } from "@/lib/auth/client";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { HouseholdProvider, useHousehold } from "@/lib/household-context";
@@ -7,6 +7,7 @@ import { createHousehold, joinHousehold } from "@/lib/shared-household";
 import { activatePersonalStore, useGuardian } from "@/lib/store";
 import { AppShell } from "./app-shell";
 import { ChildFeatureGate } from "./child-feature-gate";
+import { isMobilePackage } from "@/lib/mobile";
 
 const field = "mt-2 h-12 w-full rounded-xl border border-line bg-panel px-3 text-base";
 const button =
@@ -40,6 +41,7 @@ export function AccountPanel() {
   }, []);
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (isMobilePackage) return;
     setBusy(true);
     setNotice(null);
     try {
@@ -89,6 +91,7 @@ export function AccountPanel() {
     }
   }
   async function resend() {
+    if (isMobilePackage) return;
     setBusy(true);
     try {
       const result = await authClient.sendVerificationEmail({
@@ -114,6 +117,12 @@ export function AccountPanel() {
       />
       <h1 className="text-2xl font-semibold">KYREC Family Guardian</h1>
       <p className="mt-2 text-sm text-muted">Your own account. One shared list for your family.</p>
+      {isMobilePackage ? (
+        <p role="status" className="mt-4 rounded-xl border border-line bg-panel p-4 text-sm">
+          Development build. Your account connection is being prepared. Sign-in is unavailable in
+          this build.
+        </p>
+      ) : null}
       {user && user.emailVerified && mode !== "reset" ? (
         <>
           <p className="mt-6">Signed in as {user.primaryEmail}.</p>
@@ -126,99 +135,101 @@ export function AccountPanel() {
         </>
       ) : (
         <form className="mt-6" onSubmit={(e) => void submit(e)}>
-          <h2 className="text-xl font-semibold">
-            {
+          <fieldset disabled={isMobilePackage}>
+            <h2 className="text-xl font-semibold">
               {
-                signin: "Sign in",
-                signup: "Create your account",
-                forgot: "Reset your password",
-                reset: "Choose a new password",
-              }[mode]
-            }
-          </h2>
-          {mode === "signup" ? (
-            <label className="mt-4 block">
-              Your name
-              <input
-                aria-label="Your name"
-                autoComplete="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                maxLength={120}
-                className={field}
-              />
-            </label>
-          ) : null}
-          {mode !== "reset" ? (
-            <label className="mt-4 block">
-              Email
-              <input
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className={field}
-              />
-            </label>
-          ) : null}
-          {mode !== "forgot" ? (
-            <label className="mt-4 block">
-              Password
-              <input
-                type="password"
-                autoComplete={mode === "signin" ? "current-password" : "new-password"}
-                minLength={mode === "signin" ? undefined : 12}
-                maxLength={128}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className={field}
-              />
-              <span className="mt-1 block text-xs text-muted">
-                Use at least 12 characters for a new password.
-              </span>
-            </label>
-          ) : null}
-          <button disabled={busy} className={button}>
-            {busy
-              ? "Working…"
-              : {
+                {
                   signin: "Sign in",
-                  signup: "Create account and send confirmation",
-                  forgot: "Send reset link",
-                  reset: "Save new password",
-                }[mode]}
-          </button>
-          <div className="mt-4 flex flex-wrap gap-4 text-sm text-violet">
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === "signup" ? "signin" : "signup");
-                setPassword("");
-              }}
-            >
-              {" "}
-              {mode === "signup" ? "Already have an account?" : "Create an account"}
+                  signup: "Create your account",
+                  forgot: "Reset your password",
+                  reset: "Choose a new password",
+                }[mode]
+              }
+            </h2>
+            {mode === "signup" ? (
+              <label className="mt-4 block">
+                Your name
+                <input
+                  aria-label="Your name"
+                  autoComplete="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  maxLength={120}
+                  className={field}
+                />
+              </label>
+            ) : null}
+            {mode !== "reset" ? (
+              <label className="mt-4 block">
+                Email
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className={field}
+                />
+              </label>
+            ) : null}
+            {mode !== "forgot" ? (
+              <label className="mt-4 block">
+                Password
+                <input
+                  type="password"
+                  autoComplete={mode === "signin" ? "current-password" : "new-password"}
+                  minLength={mode === "signin" ? undefined : 12}
+                  maxLength={128}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className={field}
+                />
+                <span className="mt-1 block text-xs text-muted">
+                  Use at least 12 characters for a new password.
+                </span>
+              </label>
+            ) : null}
+            <button disabled={busy} className={button}>
+              {busy
+                ? "Working…"
+                : {
+                    signin: "Sign in",
+                    signup: "Create account and send confirmation",
+                    forgot: "Send reset link",
+                    reset: "Save new password",
+                  }[mode]}
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                setMode(mode === "forgot" ? "signin" : "forgot");
-                setPassword("");
-              }}
-            >
-              {mode === "forgot" ? "Back to sign in" : "Forgot password?"}
-            </button>
-            <button
-              type="button"
-              disabled={busy || !(email || user?.primaryEmail)}
-              onClick={() => void resend()}
-            >
-              Resend confirmation
-            </button>
-          </div>
+            <div className="mt-4 flex flex-wrap gap-4 text-sm text-violet">
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "signup" ? "signin" : "signup");
+                  setPassword("");
+                }}
+              >
+                {" "}
+                {mode === "signup" ? "Already have an account?" : "Create an account"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setMode(mode === "forgot" ? "signin" : "forgot");
+                  setPassword("");
+                }}
+              >
+                {mode === "forgot" ? "Back to sign in" : "Forgot password?"}
+              </button>
+              <button
+                type="button"
+                disabled={busy || !(email || user?.primaryEmail)}
+                onClick={() => void resend()}
+              >
+                Resend confirmation
+              </button>
+            </div>
+          </fieldset>
         </form>
       )}
       {notice ? (
@@ -356,7 +367,9 @@ function HouseholdGate({ children }: { children: ReactNode }) {
 }
 
 export function FamilyAccess({ children }: { children: ReactNode }) {
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  // Gate the route being rendered, not the destination of an in-flight transition.
+  // Otherwise a public destination can expose the previous private outlet briefly.
+  const pathname = useMatches({ select: (matches) => matches.at(-1)?.pathname ?? "/" });
   const { user, isPending } = useCurrentUserState();
   const [localReady, setLocalReady] = useState(false);
   const personalUserId = user?.id;

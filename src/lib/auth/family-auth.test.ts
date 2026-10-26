@@ -64,6 +64,26 @@ for (const backend of ["pglite", "postgres"] as const) {
           .join("; ");
         const sessionHeaders = new Headers({ cookie });
         assert.ok(await auth.api.getSession({ headers: sessionHeaders }));
+        assert.equal(await auth.api.getSession({ headers: new Headers() }), null);
+        assert.equal(await auth.api.getSession({ headers: new Headers({ cookie: "better-auth.session_token=forged" }) }), null);
+        const firstSession = await auth.api.getSession({ headers: sessionHeaders });
+        const secondEmail = `other-${randomUUID()}@example.test`;
+        await auth.api.signUpEmail({
+          body: { email: secondEmail, password: "synthetic-password-other", name: "Other household adult" }, headers,
+        });
+        const secondVerification = messages.find((m) => m.address === secondEmail && m.purpose === "verify")!;
+        await auth.handler(new Request(secondVerification.url));
+        const secondLogin = await auth.api.signInEmail({
+          body: { email: secondEmail, password: "synthetic-password-other" }, headers, asResponse: true,
+        });
+        const secondHeaders = new Headers({ cookie: secondLogin.headers.getSetCookie().map((c) => c.split(";")[0]).join("; ") });
+        const secondSession = await auth.api.getSession({ headers: secondHeaders });
+        assert.ok(secondSession);
+        assert.notEqual(secondSession.user.id, firstSession!.user.id);
+        await auth.api.signOut({ headers: secondHeaders });
+        assert.equal(await auth.api.getSession({ headers: secondHeaders }), null);
+        assert.equal((await auth.api.getSession({ headers: sessionHeaders }))!.user.id, firstSession!.user.id);
+
         await auth.api.requestPasswordReset({
           body: { email, redirectTo: "http://localhost:8080/account" },
           headers,

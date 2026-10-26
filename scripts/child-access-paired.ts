@@ -69,6 +69,27 @@ try {
     email,
   );
   const path = `/v1/guardian/households/${house}/members/${child}/feature-access`;
+  // A separate FIFO household must never inherit the first family's access.
+  const otherParent = "synthetic-fifo-parent";
+  const otherHouse = (
+    (await coreRequest(otherParent, "/v1/guardian/households", "POST", {
+      name: "Synthetic separate household",
+      display_name: "Other parent",
+      adult: true,
+      shop_consent: true,
+    })) as { household_id: string }
+  ).household_id;
+  assert.notEqual(otherHouse, house);
+  await assert.rejects(() => coreRequest(otherParent, path));
+  await assert.rejects(() =>
+    coreRequest(otherParent, path, "PUT", { revision: 0, features: allFeatures(true) }),
+  );
+  await assert.rejects(() =>
+    coreRequest(child, `/v1/guardian/households/${otherHouse}/shop`),
+  );
+  await assert.rejects(() =>
+    coreRequest(parent, `/v1/guardian/households/${otherHouse}/shop`),
+  );
   const initial = childAccessSchema.parse(await coreRequest(parent, path));
   assert.deepEqual(initial.features, allFeatures(false));
   const choices = { ...allFeatures(false), games: true };
@@ -92,7 +113,7 @@ try {
     allFeatures(false),
   );
   console.log(
-    `PASS: paired Core ${commit}; Guardian transport/schema, default deny, owner-only save, games only, map denial, revocation, stale replay.`,
+    `PASS: paired Core ${commit}; Guardian transport/schema, default deny, owner-only save, games only, map denial, revocation, stale replay, separate-household isolation.`,
   );
 } finally {
   server.kill("SIGTERM");

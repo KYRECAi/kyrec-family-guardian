@@ -3,18 +3,7 @@ import { z } from "zod";
 import { familyAuthMiddleware } from "./auth/middleware";
 import { shopSchema } from "./shared-household";
 
-const requestSchema = z
-  .object({
-    id: z.enum(["stan", "nova", "pulse", "scout", "moneybags"]),
-    household: z.string().uuid(),
-    request_id: z.string().uuid(),
-    prompt: z.string().trim().min(1).max(600),
-    history: z
-      .array(z.object({ role: z.enum(["user", "them"]), text: z.string().max(600) }).strict())
-      .max(6)
-      .default([]),
-  })
-  .strict();
+import { chatRequest, chatChoice, chatProposal } from "./companion-chat-contract";
 
 export const setCompanionConsent = createServerFn({ method: "POST" })
   .middleware([familyAuthMiddleware])
@@ -22,6 +11,9 @@ export const setCompanionConsent = createServerFn({ method: "POST" })
     z.object({ household: z.string().uuid(), enabled: z.boolean() }).strict().parse(input),
   )
   .handler(async ({ data, context }) => {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    setResponseHeader("Cache-Control", "no-store");
+    setResponseHeader("Pragma", "no-cache");
     const { coreRequest } = await import("./core-client.server");
     const { getSql } = await import("./db");
     const house = shopSchema.parse(
@@ -36,8 +28,11 @@ export const setCompanionConsent = createServerFn({ method: "POST" })
 
 export const askCompanion = createServerFn({ method: "POST" })
   .middleware([familyAuthMiddleware])
-  .validator((input: unknown) => requestSchema.parse(input))
+  .validator((input: unknown) => chatRequest.parse(input))
   .handler(async ({ data, context }) => {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    setResponseHeader("Cache-Control", "no-store");
+    setResponseHeader("Pragma", "no-cache");
     const { coreRequest } = await import("./core-client.server");
     const { getSql } = await import("./db");
     const { openAICompanion } = await import("./openai-companion.server");
@@ -62,5 +57,30 @@ export const askCompanion = createServerFn({ method: "POST" })
       Number(process.env.OPENAI_MAX_DAILY_REQUESTS ?? 20),
     );
     if (rejection) return { ok: false as const, error: rejection };
-    return openAICompanion({ id: data.id, prompt: data.prompt, history: data.history });
+    const { memoryChatService } = await import("./companion-chat-service.server");
+    return memoryChatService(context.userId, coreRequest).answer(data, openAICompanion);
+  });
+
+export const readChatMemories = createServerFn({ method: "GET" })
+  .middleware([familyAuthMiddleware])
+  .validator((input: unknown) => chatChoice.parse(input))
+  .handler(async ({ data, context }) => {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    setResponseHeader("Cache-Control", "no-store");
+    setResponseHeader("Pragma", "no-cache");
+    const { coreRequest } = await import("./core-client.server");
+    const { memoryChatService } = await import("./companion-chat-service.server");
+    return memoryChatService(context.userId, coreRequest).options(data);
+  });
+
+export const suggestChatMemory = createServerFn({ method: "POST" })
+  .middleware([familyAuthMiddleware])
+  .validator((input: unknown) => chatProposal.parse(input))
+  .handler(async ({ data, context }) => {
+    const { setResponseHeader } = await import("@tanstack/react-start/server");
+    setResponseHeader("Cache-Control", "no-store");
+    setResponseHeader("Pragma", "no-cache");
+    const { coreRequest } = await import("./core-client.server");
+    const { memoryChatService } = await import("./companion-chat-service.server");
+    return memoryChatService(context.userId, coreRequest).propose(data);
   });
