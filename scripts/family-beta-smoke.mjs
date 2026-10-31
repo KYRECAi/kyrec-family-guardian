@@ -3,12 +3,49 @@ import { mkdir } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "playwright";
 
-const production = process.env.GUARDIAN_SMOKE_MODE === "production";
-const port = production ? 8081 : 8080;
+const mode = process.env.GUARDIAN_SMOKE_MODE ?? "development";
+assert.ok(["development", "production", "container"].includes(mode));
+const production = mode !== "development";
+const port = mode === "container" ? 8082 : production ? 8081 : 8080;
 const base = `http://127.0.0.1:${port}`;
-const command = production
-  ? ["node", ".output/server/index.mjs"]
-  : ["node", "node_modules/vite/bin/vite.js", "dev", "--host", "127.0.0.1", "--port", String(port)];
+// Exercise the release image's built app with synthetic preview configuration.
+// The production entrypoint's fail-closed configuration is checked separately.
+const command =
+  mode === "container"
+    ? [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "host",
+        "--name",
+        "guardian-browser-test",
+        "--env",
+        "GUARDIAN_RUNTIME_MODE=development",
+        "--env",
+        "VITE_AUTH_ENABLED=true",
+        "--env",
+        `BETTER_AUTH_URL=${base}`,
+        "--env",
+        "NITRO_HOST=127.0.0.1",
+        "--env",
+        `NITRO_PORT=${port}`,
+        "--entrypoint",
+        "node",
+        "guardian-beta:test",
+        ".output/server/index.mjs",
+      ]
+    : production
+      ? ["node", ".output/server/index.mjs"]
+      : [
+          "node",
+          "node_modules/vite/bin/vite.js",
+          "dev",
+          "--host",
+          "127.0.0.1",
+          "--port",
+          String(port),
+        ];
 const server = spawn(command[0], command.slice(1), {
   stdio: ["ignore", "pipe", "pipe"],
   env: {
@@ -71,7 +108,7 @@ try {
       false,
     );
     await page.screenshot({
-      path: `artifacts/family-beta/${production ? "production" : "development"}-${viewport.width}.png`,
+      path: `artifacts/family-beta/${mode}-${viewport.width}.png`,
       fullPage: true,
     });
     assert.deepEqual(errors, []);
@@ -87,9 +124,7 @@ try {
     assert.equal(await session.json(), null);
     await context.close();
   }
-  console.log(
-    `Family account browser gate passed (${production ? "production" : "development"}, phone + desktop).`,
-  );
+  console.log(`Family account browser gate passed (${mode}, phone + desktop).`);
 } finally {
   if (browser) await browser.close();
   server.kill("SIGTERM");

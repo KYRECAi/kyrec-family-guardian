@@ -1,6 +1,12 @@
 name: Family beta gate
 
 on:
+  workflow_call:
+    inputs:
+      retain_release_images:
+        type: boolean
+        required: false
+        default: false
   pull_request:
     branches: [main]
   push:
@@ -45,6 +51,29 @@ jobs:
         run: |
           npm run db:migrate
           npm run db:migrate
+      - name: Verify isolated non-root migration image
+        env:
+          DATABASE_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_image_test
+          GUARDIAN_TEST_SOURCE: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          docker build --target migration --build-arg GUARDIAN_SOURCE_COMMIT="$GUARDIAN_TEST_SOURCE" -t guardian-migration:test .
+          test "$(docker inspect --format '{{.Config.User}}' guardian-migration:test)" = node
+          test "$(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' guardian-migration:test)" = "$GUARDIAN_TEST_SOURCE"
+          if docker run --rm --network none guardian-migration:test > /tmp/guardian-migration-missing.log 2>&1; then
+            echo "Migration image accepted a missing database URL."
+            exit 1
+          fi
+          grep -Fq 'DATABASE_URL is required' /tmp/guardian-migration-missing.log
+          docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_test -v ON_ERROR_STOP=1 -c 'CREATE DATABASE guardian_image_test'
+          docker run --rm --network host --env DATABASE_URL guardian-migration:test
+          test "$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc "SELECT to_regclass('public.user') IS NOT NULL")" = t
+          before=$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc 'SELECT count(*) FROM _migrations')
+          test "$before" -gt 0
+          docker run --rm --network host --env DATABASE_URL guardian-migration:test > /tmp/guardian-migration-repeat.log 2>&1
+          grep -Fq '[migrate] up to date.' /tmp/guardian-migration-repeat.log
+          after=$(docker exec "${{ job.services.postgres.id }}" psql -U guardian_test -d guardian_image_test -tAc 'SELECT count(*) FROM _migrations')
+          test "$before" = "$after"
       - name: Type and behavioral gates, including real PostgreSQL authentication
         env:
           GUARDIAN_TEST_POSTGRES_URL: postgresql://guardian_test:synthetic-ci-only-password@localhost:5432/guardian_test
@@ -70,6 +99,7 @@ jobs:
           GUARDIAN_SMOKE_MODE: production
         run: npm run test:browser
       - name: Build non-root container from this exact source
+        id: release_images
         run: |
           docker build --build-arg GUARDIAN_SOURCE_COMMIT=${{ github.event.pull_request.head.sha || github.sha }} -t guardian-beta:test .
           test "$(docker inspect --format '{{.Config.User}}' guardian-beta:test)" = node
@@ -78,6 +108,67 @@ jobs:
             exit 1
           fi
           grep -Fq 'Guardian startup blocked' /tmp/guardian-startup.log
+      - name: Verify release images omit package-manager tooling
+        run: |
+          for image in guardian-beta:test guardian-migration:test; do
+            docker run --rm --network none --entrypoint sh "$image" -ec '
+              test "$(id -u)" != 0
+              test -e /lib/ld-musl-x86_64.so.1
+              test ! -d /usr/local/lib/node_modules/npm
+              test ! -d /usr/local/lib/node_modules/corepack
+              for tool in npm npx yarn yarnpkg corepack pnpm pnpx; do
+                if command -v "$tool"; then
+                  echo "Package-manager tooling remains in the release image."
+                  exit 1
+                fi
+              done
+              node --version
+            '
+          done
+      - name: Release-image phone and desktop account gate
+        env:
+          GUARDIAN_SMOKE_MODE: container
+        run: npm run test:browser
+      - name: Scan runtime image for release-blocking vulnerabilities
+        if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.76.0
+          image-ref: guardian-beta:test
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "1"
+          scanners: vuln
+          trivyignores: ""
+          cache: "true"
+      - name: Scan migration image for release-blocking vulnerabilities
+        if: ${{ !cancelled() && steps.release_images.outcome == 'success' }}
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          version: v0.76.0
+          image-ref: guardian-migration:test
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: "false"
+          exit-code: "1"
+          scanners: vuln
+          trivyignores: ""
+          cache: "true"
+      - name: Retain the exact tested release images
+        if: ${{ success() && inputs.retain_release_images }}
+        run: |
+          node scripts/guardian-release.mjs record
+          docker save guardian-beta:test guardian-migration:test -o artifacts/guardian-release/images.tar
+      - name: Upload this run's tested release images
+        if: ${{ success() && inputs.retain_release_images }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: guardian-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: artifacts/guardian-release/
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 1
       - name: Keep browser evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
