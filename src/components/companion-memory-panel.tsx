@@ -90,8 +90,8 @@ function MemoryReview() {
     >
       <h2 className="text-lg font-semibold">Companion memory</h2>
       <p className="mt-1 text-sm text-muted">
-        Review what Evelyn asks to remember. Only the configured owner can approve, dismiss or
-        forget a fact.
+        Review facts suggested through Guardian or Evelyn. Only the configured owner can approve,
+        dismiss or forget a fact.
       </p>
       <div className="mt-3 flex flex-wrap gap-2">
         <button className={button} disabled={busy} onClick={() => void run(loadPending)}>
@@ -197,4 +197,3 @@ function MemoryReview() {
     </section>
   );
 }
-

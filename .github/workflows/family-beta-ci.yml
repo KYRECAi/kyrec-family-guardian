@@ -55,6 +55,8 @@ jobs:
           npm audit --audit-level=moderate
       - name: Install isolated test browser
         run: npx playwright install --with-deps chromium
+      - name: Individual companion chat isolation browser gate
+        run: npm run test:companion:browser
       - name: Native review consent and feedback browser gate
         run: npm run test:native:browser
       - name: Development phone and desktop account gate
