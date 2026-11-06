@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { SeasonalCatch } from "@/components/seasonal-catch";
-import { ValentineCrush } from "@/components/valentine-crush";
+import { GuardianArcade } from "@/components/guardian-arcade";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/games/$id")({ component: GamePlay });
@@ -17,8 +17,8 @@ function GamePlay() {
       </div>
     );
   }
-  if (id === "valentine") return <ValentineCrush />;
-  if (id === "moneybags") return <SeasonalCatch id="moneybags" />;
+  if (id === "valentine") return <GuardianArcade game="valentine" />;
+  if (id === "moneybags") return <GuardianArcade game="moneybags" />;
 
   return <SeasonalCatch id={id} />;
 }

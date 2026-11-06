@@ -1,3 +1,4 @@
+import { withArcadeBest, type ArcadeGameId } from "./arcade-contract.ts";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { HOUSEHOLD, type MemberId } from "@/lib/family";
@@ -28,6 +29,8 @@ type State = {
   points: number;
   budgetSpent: number;
   gameBest: Record<string, number>;
+  arcadeBest: Record<string, number>;
+  recordArcadeScore: (game: ArcadeGameId, score: number) => void;
   novaMoods: { at: number; mood: Mood; note: string }[];
   stanMessages: StanMsg[];
   plan: PlanId;
@@ -155,6 +158,7 @@ const defaults = {
   points: 0,
   budgetSpent: 0,
   gameBest: {} as Record<string, number>,
+  arcadeBest: {} as Record<string, number>,
   novaMoods: [] as { at: number; mood: Mood; note: string }[],
   plan: "free" as PlanId,
   scoutOn: false,
@@ -240,6 +244,7 @@ export const useGuardian = create<State>()(
       addBudget: (amount) =>
         set({ budgetSpent: (get().budgetSpent ?? HOUSEHOLD.budgetSpent) + amount }),
       resetBudget: () => set({ budgetSpent: 240 }),
+      recordArcadeScore: (game, score) => set({ arcadeBest: withArcadeBest(get().arcadeBest ?? {}, game, score) }),
       addGameScore: (game, score) => {
         const best = Math.max(get().gameBest[game] ?? 0, score);
         const gained = Math.floor(score / 10);
