@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { arcadeUrl, readArcadeMessage, withArcadeBest } from "./arcade-contract.ts";
+import { arcadeBestKey, arcadeUrl, readArcadeMessage, withArcadeBest } from "./arcade-contract.ts";
 
 const source = {};
 const expected = { source, origin: "https://kyrecai.github.io", game: "moneybags" as const, session: "0123456789abcdef" };
@@ -26,4 +26,17 @@ test("best-score updates cannot alter financial or Family Points state", () => {
   assert.equal(next.points,120);assert.equal(next.budgetSpent,40);assert.equal(next.arcadeBest.moneybags,200);
   assert.equal(withArcadeBest(next.arcadeBest,"moneybags",100),next.arcadeBest);
   assert.equal(withArcadeBest(next.arcadeBest,"moneybags",Infinity),next.arcadeBest);
+});
+
+test("personal bests stay separate when accounts or households change", () => {
+  const first = JSON.stringify(["user-a", "family-a"]);
+  const otherUser = JSON.stringify(["user-b", "family-a"]);
+  const otherFamily = JSON.stringify(["user-a", "family-b"]);
+  const state = withArcadeBest({ moneybags: 999 }, "moneybags", 25, first);
+  assert.equal(state[arcadeBestKey("moneybags", first)], 25);
+  assert.equal(state[arcadeBestKey("moneybags", otherUser)], undefined);
+  assert.equal(state[arcadeBestKey("moneybags", otherFamily)], undefined);
+  const next = withArcadeBest(state, "moneybags", 10, otherUser);
+  assert.equal(next[arcadeBestKey("moneybags", first)], 25);
+  assert.equal(next[arcadeBestKey("moneybags", otherUser)], 10);
 });

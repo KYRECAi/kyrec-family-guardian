@@ -50,10 +50,15 @@ export function arcadeUrl(game: ArcadeGameId, origin: string, session: string, g
   return url.href;
 }
 
+export function arcadeBestKey(game: ArcadeGameId, scope?: string): string {
+  return scope ? JSON.stringify([scope, game]) : game;
+}
+
 export function withArcadeBest(
-  current: Record<string, number>, game: ArcadeGameId, score: number,
+  current: Record<string, number>, game: ArcadeGameId, score: number, scope?: string,
 ): Record<string, number> {
   if (!isCount(score) || !Object.hasOwn(ARCADE_GAMES, game)) return current;
-  const prior = isCount(current[game]) ? current[game] : 0;
-  return score > prior ? { ...current, [game]: score } : current;
+  const key = arcadeBestKey(game, scope);
+  const prior = isCount(current[key]) ? current[key] : 0;
+  return score > prior ? { ...current, [key]: score } : current;
 }

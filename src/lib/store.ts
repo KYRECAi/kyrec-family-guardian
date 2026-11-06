@@ -30,7 +30,7 @@ type State = {
   budgetSpent: number;
   gameBest: Record<string, number>;
   arcadeBest: Record<string, number>;
-  recordArcadeScore: (game: ArcadeGameId, score: number) => void;
+  recordArcadeScore: (game: ArcadeGameId, score: number, scope: string) => void;
   novaMoods: { at: number; mood: Mood; note: string }[];
   stanMessages: StanMsg[];
   plan: PlanId;
@@ -244,7 +244,7 @@ export const useGuardian = create<State>()(
       addBudget: (amount) =>
         set({ budgetSpent: (get().budgetSpent ?? HOUSEHOLD.budgetSpent) + amount }),
       resetBudget: () => set({ budgetSpent: 240 }),
-      recordArcadeScore: (game, score) => set({ arcadeBest: withArcadeBest(get().arcadeBest ?? {}, game, score) }),
+      recordArcadeScore: (game, score, scope) => set({ arcadeBest: withArcadeBest(get().arcadeBest ?? {}, game, score, scope) }),
       addGameScore: (game, score) => {
         const best = Math.max(get().gameBest[game] ?? 0, score);
         const gained = Math.floor(score / 10);
