@@ -549,3 +549,20 @@ html[data-look="orange"] {
 .pin-label b { font-size: 12px; font-weight: 700; }
 .pin-label span { font-size: 10px; font-weight: 500; color: #5c6675; }
 .holo-stage .pin-label { display: none; }
+
+/* Full-height game frame stays usable on phones, tablets and safe-area screens. */
+.guardian-arcade { display: flex; flex-direction: column; width: 100%; height: 100dvh; min-height: 420px; color: #f6f3ff; background: #151125; }
+.guardian-arcade-bar { display: flex; align-items: center; gap: 10px; flex-shrink: 0; padding: max(6px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) 6px max(8px, env(safe-area-inset-left)); background: #211a34; }
+.guardian-arcade-bar>div { flex: 1; min-width: 0; }
+.guardian-arcade-bar h1 { font-size: 15px; font-weight: 700; margin: 0; }
+.guardian-arcade-bar p { font-size: 11px; color: #c5bbda; margin: 2px 0 0; }
+.guardian-arcade-bar button,.guardian-arcade-back { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; background: #382b50; color: #f6f3ff; border-radius: 12px; border: 0; }
+.guardian-arcade-bar button:disabled { opacity: .4; }
+.guardian-arcade-stage { position: relative; flex: 1; min-height: 0; }
+.guardian-arcade-stage iframe { display: block; width: 100%; height: 100%; border: 0; }
+.guardian-arcade-status { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 28px; background: #151125; text-align: center; }
+.guardian-arcade-status h2 { font-size: 22px; font-weight: 600; }
+.guardian-arcade-status p { color: #c5bbda; margin-top: 12px; }
+.guardian-arcade-status button { display: flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 18px; margin: 18px 0; background: #7952c9; color: #fff; border-radius: 12px; }
+.guardian-arcade-status a { margin-top: 18px; text-decoration: underline; }
+.guardian-arcade-score { display: flex; flex-wrap: wrap; gap: 5px 18px; justify-content: center; flex-shrink: 0; font-size: 10px; padding: 5px 10px max(5px, env(safe-area-inset-bottom)); color: #d0c5e0; background: #211a34; }

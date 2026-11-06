@@ -344,7 +344,7 @@ export const GAMES = [
     id: "valentine",
     season: "Valentine's Day",
     title: "Valentine Crush",
-    blurb: "Match hearts in a short family round. One household score.",
+    blurb: "Catch hearts and diamonds through fifteen stages with Stan and Nova.",
     accent: "pink" as Accent,
   },
   {
@@ -359,7 +359,7 @@ export const GAMES = [
     id: "moneybags",
     season: "Weekly bonus",
     title: "Moneybags Bonus",
-    blurb: "Catch the coins together. One household bonus. Nobody is singled out.",
+    blurb: "Catch Moneybags’ coin rain across fifteen levels. Beat your personal arcade best.",
     accent: "gold" as Accent,
   },
 ];
