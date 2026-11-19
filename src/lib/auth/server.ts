@@ -30,12 +30,13 @@
  * a verified id via `@/lib/auth/middleware`.
  */
 import { betterAuth } from "better-auth";
-import { bearer, genericOAuth } from "better-auth/plugins";
+import { bearer } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
+import { grokBrokerOAuth } from "./broker-oauth.server";
 import { emailAndPasswordEnabled } from "./email-password";
 import { familyEmailOptions } from "./family-email-options.server";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
@@ -155,8 +156,8 @@ const grokOAuthPlugin =
   authConfigured &&
   (process.env.NODE_ENV !== "production" ||
     Boolean(env("GROK_AUTH_CLIENT_ID") && env("GROK_AUTH_CLIENT_SECRET")))
-    ? genericOAuth({
-        config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
+    ? grokBrokerOAuth(
+        GROK_PROVIDERS.map(({ providerId, idp }) => ({
           providerId,
           clientId: grokClientId as string,
           clientSecret: grokClientSecret as string,
@@ -173,7 +174,7 @@ const grokOAuthPlugin =
           // and can pick (or switch) which account to sign in with.
           authorizationUrlParams: { idp, prompt: "login" },
         })),
-      })
+      )
     : null;
 
 export const auth = betterAuth({
