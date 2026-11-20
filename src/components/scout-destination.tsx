@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { ScoutWeekendEvents } from "./scout-weekend-events";
 import { ZONES } from "@/lib/family";
 import { useGuardian } from "@/lib/store";
 
@@ -93,9 +94,10 @@ export function ScoutDestination() {
 
   return (
     <>
+      <ScoutWeekendEvents />
       <section className="mt-4 rounded-[24px] bg-panel p-4 shadow-[var(--shadow-border)]">
         <p className="text-sm font-semibold">Something to do</p>
-        <p className="mt-1 text-xs text-muted">This weekend in Perth. Free, a ticket, or a bigger day. Scout does not take the booking.</p>
+        <p className="mt-1 text-xs text-muted">General Perth outing ideas, separate from the dated event feed above. Check current opening and ticket details. Scout does not take the booking.</p>
         <div className="mt-3 flex gap-1.5">
           {BANDS.map((item) => (
             <button

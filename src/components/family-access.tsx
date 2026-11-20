@@ -6,6 +6,7 @@ import { HouseholdProvider, useHousehold } from "@/lib/household-context";
 import { createHousehold, joinHousehold } from "@/lib/shared-household";
 import { activatePersonalStore, useGuardian } from "@/lib/store";
 import { AppShell } from "./app-shell";
+import { isPublicFamilyPage } from "@/lib/public-family-page";
 
 const field = "mt-2 h-12 w-full rounded-xl border border-line bg-panel px-3 text-base";
 const button =
@@ -356,6 +357,12 @@ function HouseholdGate({ children }: { children: ReactNode }) {
 
 export function FamilyAccess({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  if (isPublicFamilyPage(pathname)) return <>{children}</>;
+  return <PrivateFamilyAccess>{children}</PrivateFamilyAccess>;
+}
+
+function PrivateFamilyAccess({ children }: { children: ReactNode }) {
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user, isPending } = useCurrentUserState();
   const [localReady, setLocalReady] = useState(false);
   const personalUserId = user?.id;
@@ -380,7 +387,6 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
       active = false;
     };
   }, [personalUserId, personalVerified, personalFallback, personalDisplayName]);
-  if (["/privacy", "/terms"].includes(pathname)) return <>{children}</>;
   if (isPending)
     return (
       <p role="status" className="p-8">

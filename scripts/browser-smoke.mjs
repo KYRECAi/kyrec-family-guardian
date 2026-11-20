@@ -111,6 +111,9 @@ try {
     const status = resp?.status() ?? 0;
     await page.waitForTimeout(1000);
 
+    // Wait for optional server-backed feature content instead of an empty shell.
+    if (process.env.BROWSER_SMOKE_READY_SELECTOR)
+      await page.locator(process.env.BROWSER_SMOKE_READY_SELECTOR).first().waitFor({ state: "visible", timeout: timeoutMs });
     const title = await page.title();
     const hasCanvas = (await page.locator("canvas").count()) > 0;
     const bodyText = await page
