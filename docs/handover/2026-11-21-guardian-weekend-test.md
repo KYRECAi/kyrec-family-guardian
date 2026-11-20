@@ -30,7 +30,7 @@
 
 **TESTS RUN:** Full Core control-screen gate and new API/projection tests; Guardian full suite plus six weekend tests, TypeScript and production build; existing browser smoke with feature-ready selector; actual browser filter tests and dev/built screenshots; real local HTTP worker and HTTPS production-build transport.
 
-**PASS:** Core: 577 tests, 552 passed/25 PostgreSQL-dependent skips; six Node tests passed. Guardian: 281 tests passed, TypeScript/build passed. Forty smoke-verdict tests passed. Local worker confirmed 20 intake records; 19 weekend listings and eight source-listed free. Desktop/mobile production-build comparison has no divergence and no uncaught/console errors after verified proxy transport configuration. Client asset check found no service-key identifiers.
+**PASS:** Core: 577 tests, 552 passed/25 PostgreSQL-dependent skips; six Node tests passed. Guardian: 282 tests passed, TypeScript/build passed. Forty smoke-verdict tests passed. Local worker confirmed 20 intake records; 19 weekend listings and eight source-listed free. Desktop/mobile production-build comparison has no divergence and no uncaught/console errors after verified proxy transport configuration. Client asset check found no service-key identifiers.
 
 **FAIL:** Initial npm install failed on unwritable default cache; fixed using a task cache. Initial test syntax typo fixed. Standard browser check hit the private account gate as expected; no account was fabricated, and a public-only route was added. Browser external assets initially failed proxy CA trust; verified fetch transport retained TLS verification. Test CA bundle initially lacked a PEM separator and was repaired. Built-preview restart helper failed in this runtime; a directly managed npm preview on its expected port was verified. Early smoke snapshots raced asynchronous feed loading; added optional readiness selector without weakening assertions. The pre-existing missing custom share-card brand note remains; no branding overhaul was undertaken. No outstanding functional failure in final checks.
 
@@ -51,3 +51,5 @@
 **MICHAEL APPROVAL REQUIRED:** NO for completed local work. YES before a concrete production deployment or live service configuration, under the existing Adrian release gate. No such approval is requested on an unspecified action.
 
 Verified Core implementation commit: `ad27282` (full remote reference recorded in the Core PR). The HTML evidence file is a frozen public-source review snapshot, not a live fallback feed.
+
+Final reconciliation: preserved Guardian main `b2fc7ef4b0b309284a20a5212a79413d574df69e`, including dependency, standalone-build and broker OAuth repairs. Re-ran all 282 Guardian tests, typecheck and build successfully. Latest built preview used port 8082 because the older 8081 listener could not be attributed safely; it was left untouched. Final desktop/mobile dev and built smoke reports match, with no errors or horizontal overflow.

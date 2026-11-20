@@ -4,7 +4,8 @@ async function handle({ request }: { request: Request }) {
   const { requireProductionIdentityConfiguration } = await import("@/lib/runtime-config.server");
   requireProductionIdentityConfiguration();
   const { auth } = await import("@/lib/auth/server");
-  const response = await auth.handler(request);
+  const { routeGrokBrokerCallback } = await import("@/lib/auth/broker-oauth.server");
+  const response = await auth.handler(routeGrokBrokerCallback(request));
   response.headers.set("Cache-Control", "no-store");
   return response;
 }
