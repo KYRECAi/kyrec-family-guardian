@@ -30,6 +30,7 @@ import { Route as SettingsRouteImport } from './routes/settings'
 import { Route as StanRouteImport } from './routes/stan'
 import { Route as StatsRouteImport } from './routes/stats'
 import { Route as TermsRouteImport } from './routes/terms'
+import { Route as WeekendRouteImport } from './routes/weekend'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as CompanionsIndexRouteImport } from './routes/companions.index'
 import { Route as CompanionsIdRouteImport } from './routes/companions.$id'
@@ -143,6 +144,11 @@ const TermsRoute = TermsRouteImport.update({
   path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WeekendRoute = WeekendRouteImport.update({
+  id: '/weekend',
+  path: '/weekend',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
   id: '/api/health',
   path: '/api/health',
@@ -201,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/weekend': typeof WeekendRoute
   '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/weekend': typeof WeekendRoute
   '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
@@ -260,6 +268,7 @@ export interface FileRoutesById {
   '/stan': typeof StanRoute
   '/stats': typeof StatsRoute
   '/terms': typeof TermsRoute
+  '/weekend': typeof WeekendRoute
   '/api/health': typeof ApiHealthRoute
   '/companions/$id': typeof CompanionsIdRoute
   '/games/$id': typeof GamesIdRoute
@@ -292,6 +301,7 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/weekend'
     | '/api/health'
     | '/companions/$id'
     | '/games/$id'
@@ -320,6 +330,7 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/weekend'
     | '/api/health'
     | '/companions/$id'
     | '/games/$id'
@@ -350,6 +361,7 @@ export interface FileRouteTypes {
     | '/stan'
     | '/stats'
     | '/terms'
+    | '/weekend'
     | '/api/health'
     | '/companions/$id'
     | '/games/$id'
@@ -381,6 +393,7 @@ export interface RootRouteChildren {
   StanRoute: typeof StanRoute
   StatsRoute: typeof StatsRoute
   TermsRoute: typeof TermsRoute
+  WeekendRoute: typeof WeekendRoute
   ApiHealthRoute: typeof ApiHealthRoute
   TalkIdRoute: typeof TalkIdRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
@@ -535,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/weekend': {
+      id: '/weekend'
+      path: '/weekend'
+      fullPath: '/weekend'
+      preLoaderRoute: typeof WeekendRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/health': {
       id: '/api/health'
       path: '/api/health'
@@ -635,6 +655,7 @@ const rootRouteChildren: RootRouteChildren = {
   StanRoute: StanRoute,
   StatsRoute: StatsRoute,
   TermsRoute: TermsRoute,
+  WeekendRoute: WeekendRoute,
   ApiHealthRoute: ApiHealthRoute,
   TalkIdRoute: TalkIdRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
